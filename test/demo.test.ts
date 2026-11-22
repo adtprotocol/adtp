@@ -98,6 +98,8 @@ describe('the demo, local mode', { skip }, () => {
   let echoAgent: ReturnType<typeof runScript>;
   /** A receiver that has no way to find the sender: no override, no DNS record. */
   let blind: Side;
+  /** What the blind side asked DNS and the web for. */
+  const blindLookups: string[] = [];
   const FROM = 'agent@stratuslabs.localhost';
   const TO = 'echo@demo.adtp.localhost';
   const runnerEnv = () => ({ STRATUS_NODE_URL: stratus.url, STRATUS_TOKEN: stratus.token, FROM_ADDRESS: FROM, TO_ADDRESS: TO, OUT_DIR: dir, TIMEOUT_MS: '15000' });
@@ -129,11 +131,23 @@ describe('the demo, local mode', { skip }, () => {
         },
       },
     });
+    // The blind side has no override for the sender's domain, so it looks the sender up as a
+    // real node would: DNS, then the well-known URL. Both lookups are answered here, at once,
+    // with "no such name". With the machine's own resolver, how long that takes (and so whether
+    // the runner sees a retry before its timeout) would depend on where the test runs.
     blind = await startSide(dir, 'blind-token', {
       domain: 'blind.localhost',
       port: blindPort,
       addresses: [{ local: 'echo', type: 'agent', trusted: [FROM], routes: [{ default: true, channel: 'agent' }] }],
       discovery: { allow_insecure: true },
+      resolveTxt: async (name) => {
+        blindLookups.push(name);
+        throw Object.assign(new Error(`queryTxt ENOTFOUND ${name}`), { code: 'ENOTFOUND' });
+      },
+      http: async (url) => {
+        blindLookups.push(url);
+        throw new Error(`getaddrinfo ENOTFOUND ${new URL(url).hostname}`);
+      },
     });
     echo = await startSide(dir, 'echo-token', {
       domain: 'demo.adtp.localhost',
@@ -265,6 +279,8 @@ describe('the demo, local mode', { skip }, () => {
     assert.ok(!/ (accepted|delivered) /.test(out.split('"signature"')[1] ?? ''), 'nothing was accepted');
     assert.equal(JSON.parse(readFileSync(path.join(dir, 'transcript.json'), 'utf8')).result.ok, false);
     assert.equal((await api(blind, 'GET', '/api/v0/tray', undefined, blind.adminToken)).json.items.length, 0, 'the receiver stored nothing');
+    // The receiver looked for the sender where a real node would, and nowhere else.
+    assert.deepEqual([...new Set(blindLookups)], ['_adtp.stratuslabs.localhost', 'https://stratuslabs.localhost/.well-known/adtp/agent']);
   });
 
   it('run.js --watch: transcribes a message sent by the agent itself', async () => {
