@@ -8,7 +8,7 @@ services:
   test:
     build:
       context: .
-      target: build          # the stage with dev dependencies and compiled tests
+      target: test           # dev dependencies, compiled tests, bash and the deployment files
     command: ["sh", "-c", "npm test && npm run test:postgres"]
     environment:
       TEST_DATABASE_URL: postgres://adtp:adtp@postgres:5432/adtp_test

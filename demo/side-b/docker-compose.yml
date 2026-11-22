@@ -37,9 +37,14 @@ services:
       ADTP_NODE_URL: http://node:7387
       ADTP_AGENT_TOKEN: ${ADTP_AGENT_TOKEN:-}
       ADTP_ADDRESS: echo@${ADTP_DOMAIN:-demo.adtp.dev}
+      ADTP_READY_FILE: /tmp/echo-agent.ready
       FORCE_COLOR: "1"
+    # Healthy once the agent follows its feed: it only sees messages that arrive after that.
     healthcheck:
-      disable: true
+      test: ["CMD", "test", "-f", "/tmp/echo-agent.ready"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
     depends_on:
       node:
         condition: service_healthy

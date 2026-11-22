@@ -1,0 +1,54 @@
+# Runs the test suite on every pull request and on main: on SQLite and on
+# Postgres, on the oldest Node.js release the node supports and on the newest
+# of the same line. A second job runs the documented container command.
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["22.20.0", "22"]     # package.json "engines": the minimum, and the latest 22
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: adtp
+          POSTGRES_PASSWORD: adtp
+          POSTGRES_DB: adtp_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U adtp -d adtp_test"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+    env:
+      TEST_DATABASE_URL: postgres://adtp:adtp@localhost:5432/adtp_test
+      ADTP_TEST_REQUIRE_DB: "1"     # fail, rather than skip, if Postgres is missing
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run test:postgres
+
+  container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose -f docker-compose.test.yml run --rm test

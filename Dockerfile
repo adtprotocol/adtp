@@ -19,8 +19,17 @@ COPY integrations ./integrations
 COPY migrations ./migrations
 RUN npm run build
 
+# ---- test: the build stage plus what the test suites read and run -----------------
+# docker-compose.test.yml runs both suites here. Some tests run the shell
+# scripts with bash, and some read the deployment files at the repository root.
+FROM build AS test
+RUN apk add --no-cache bash
+COPY deploy ./deploy
+COPY Dockerfile render.yaml fly.toml ./
+
 # ---- runtime: production dependencies + compiled output ---------------------------
-FROM ${NODE_IMAGE}
+# The last stage, so a plain `docker build .` produces this one.
+FROM ${NODE_IMAGE} AS runtime
 ENV NODE_ENV=production
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -48,8 +57,10 @@ ENV ADTP_CONFIG=/app/adtp.config.yaml \
     ADTP_DATA_DIR=/data
 
 EXPOSE 7387
-# The health check assumes listen.port 7387; change the published port in Compose, not the listen port.
+# The health check asks the port the image's own config listens on: PORT if the
+# platform set it, 7387 otherwise. A mounted config that sets another
+# listen.port needs PORT set to the same number, or a health check of its own.
 HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --retries=6 \
-  CMD wget -q -O /dev/null http://127.0.0.1:7387/healthz || exit 1
+  CMD wget -q -O /dev/null "http://127.0.0.1:${PORT:-7387}/healthz" || exit 1
 
 CMD ["node", "dist/src/cli.js", "start"]
