@@ -33,7 +33,7 @@ import { mintDelegation, parseScope } from './protocol/delegation.js';
 import { parseAddress } from './protocol/address.js';
 import type { ResolvedCard } from './protocol/types.js';
 
-const VERSION = '0.0.1';
+const VERSION = '0.1.0';
 
 const USAGE = `usage: adtp <command> [options]
 
