@@ -341,6 +341,17 @@ export class SqlStore {
    * is also the record that stops its id from being accepted twice, so it is
    * never removed while it could still be accepted: only once expired.
    */
+  /**
+   * Brings forward the expiry of stored messages that expire after `latest`.
+   * A node no longer accepts a message that lives longer than it keeps
+   * messages; this applies the same bound to any it stored before that rule,
+   * so they too expire and are deleted. The signed envelope is not touched.
+   */
+  async capExpiry(latest: Date): Promise<number> {
+    const res = await this.db.query('UPDATE messages SET expires_at = $1 WHERE expires_at > $1', [latest]);
+    return res.rowCount;
+  }
+
   async purgeMessages(storedBefore: Date, expiredBefore: Date): Promise<number> {
     const res = await this.db.query('DELETE FROM messages WHERE created_at < $1 AND expires_at < $2', [storedBefore, expiredBefore]);
     return res.rowCount;

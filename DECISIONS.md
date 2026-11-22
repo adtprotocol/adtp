@@ -167,6 +167,18 @@ is meant to be permanent.
   record that stops its id being accepted twice, which is why expiry comes
   into it. Deleting a message deletes its deliveries. Events on agent feeds
   are kept for seven days.
+- **A message may live no longer than the node keeps messages.** A stored
+  message stays until it has expired, since it is the record of its id. One
+  that expires in ten years would therefore be kept, text and all, for ten
+  years, whatever `retention_days` says. So a message whose `expires_at` is
+  more than `retention_days` after its `created_at` is refused
+  (`invalid_envelope`), on the way in and on the way out. The bound is the
+  retention period and not a setting of its own, and never under seven days,
+  so a message that names no expiry is always acceptable. Nothing is then
+  kept for more than the retention period plus a day. A message stored before
+  this rule has its stored expiry brought forward to the bound, once; the
+  signed envelope is left alone, and a replay of it is refused by the same
+  rule.
 - **No copying between databases.** A node switched from SQLite to Postgres (or
   back) starts empty. v0 has no export or import.
 - **No upgrade path between schema generations.** The schema is one file per
@@ -208,10 +220,17 @@ is meant to be permanent.
   cannot approve its own senders or mint delegations.
 - **The agent token is held to agent addresses.** It cannot send as a person,
   read a person's feed, or have the node sign a delegation from a principal the
-  sending agent is not configured to act for. It can read the status of any
-  message and any thread on the node: v0 has one agent token for all of a
-  node's agents. Per-agent tokens would be a `TokenVerifier` that knows which
-  agent a token belongs to.
+  sending agent is not configured to act for. Looking a message or a thread
+  up by id follows the same line: it returns what an agent address of the node
+  sent, and what was delivered to one. A message between people, or one that
+  never reached the agent (still in the requests tray, turned away, or expired
+  before anyone approved it), is answered as if it did not exist, so an id
+  that leaked or was guessed opens nothing. Of a message that went to an agent
+  and a person both, the token sees the signed envelope (the agent received it)
+  and the agent's delivery, not the person's. Within that, any agent's
+  messages are readable: v0 has one agent token for all of a node's agents.
+  Per-agent tokens would be a `TokenVerifier` that knows which agent a token
+  belongs to.
 - **Both tokens** come from the environment (`ADTP_ADMIN_TOKEN`,
   `ADTP_AGENT_TOKEN`) or the config, and are otherwise generated on first run
   into 0600 files. They are never printed or logged, and must differ.
@@ -254,7 +273,9 @@ is meant to be permanent.
   outcome is a retryable refusal, and leaves every other recipient exactly as
   it was. What gets delivered is always the envelope stored the first time.
   Each such retry counts against the first-contact allowance like a new
-  message would. After the message's deadline the stored answer stands.
+  message would. After the message's deadline, or once its `created_at` is
+  older than the node accepts, the stored answer stands: a retry must not get
+  a message delivered that could no longer be sent as new.
 - **A receipt the sender cannot trust is no answer.** A `202` without a valid
   signature from one of the message's recipients leaves the delivery pending,
   and it is retried like a timeout.
@@ -375,7 +396,19 @@ is meant to be permanent.
 - **The messages endpoint is open by design.** Anyone can post; nothing is
   stored until the signature verifies. There is no per-IP throttling in v0, so
   put the node behind a reverse proxy that rate-limits if it faces the open
-  internet.
+  internet. The README gives the limits to apply.
+- **Discovery is bounded, because strangers cause it.** The sender's card has
+  to be fetched before the signature can be checked, and the first-contact
+  limits count verified senders, so they cannot come first: counting a sender
+  nobody has verified would let anyone use up someone else's allowance. What
+  is limited instead is the work. Lookups for the same address share one fetch.
+  At most 16 lookups are in progress and 64 wait; one more is answered `503`
+  (`sender_unresolvable`, retryable) and is not remembered as a failure of the
+  address. Each cache holds at most 5000 entries, drops the oldest when full,
+  and clears out expired entries once a minute. The numbers are constants, not
+  settings, until someone needs to change them. Sending shares the same
+  budget, so a flood of unknown senders can delay this node's own lookups;
+  they are retried like any failed attempt.
 - **The local API shares the node's port.** `/api/v0` and `/admin` are guarded
   by the two tokens, not by network position. The demo's Compose files publish
   the port on localhost only by default.
@@ -435,7 +468,13 @@ logic here, and none of the four defaults pretends otherwise.
   Side B's clock.
 - **Local mode uses separate config files** (`demo/local/`) rather than the
   public ones with switches, so each file can be read on its own.
-- **Transcripts are overwritten on every run** and committed as a sample.
+- **Transcripts are overwritten on every run** and committed as a sample, so
+  what a run writes by default has to be safe to commit: signatures and
+  delegation tokens are shortened, and unless both sides are the scripted
+  ones on `.localhost`, message text and data are left out. A live run
+  carries real messages and tokens that are valid for days. The full record
+  is written only when asked for (`--raw`), to `demo/raw/`, which git and
+  Docker builds ignore.
 - **The echo agent answers requests only**, so two such agents cannot bounce
   messages forever.
 

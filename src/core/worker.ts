@@ -108,6 +108,10 @@ export class Worker {
       this.lastPrune = now.getTime();
       await store.pruneRateCounters(new Date(now.getTime() - DAY_MS));
       await store.pruneEvents(new Date(now.getTime() - EVENT_RETENTION_MS));
+      // Nothing accepted today can expire later than its lifetime bound from now (a day is added for
+      // clock differences). A message that does was stored before the bound existed: it gets the bound now.
+      const capped = await store.capExpiry(new Date(now.getTime() + this.core.config.limits.max_lifetime_seconds * 1000 + DAY_MS));
+      if (capped > 0) this.core.log.info('shortened the expiry of stored messages', { count: capped });
       // A stored message is also what stops its id from being accepted twice, so it stays at
       // least a day past the point where it could no longer be accepted anyway.
       const purged = await store.purgeMessages(new Date(now.getTime() - this.core.config.limits.retention_days * DAY_MS), new Date(now.getTime() - DAY_MS));

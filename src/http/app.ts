@@ -191,6 +191,27 @@ export function createApp(opts: AppOptions): Server {
     const hosted = node.core.domains.lookup(parseAddress(address)?.address ?? '');
     if (hosted?.type !== 'agent') throw new HttpError(403, `an agent token can only ${what} an agent address hosted on this node`, 'forbidden');
   };
+  /**
+   * The stored copies a caller may read. The admin token reads everything. An
+   * agent token reads what an agent address of this node sent, and what was
+   * delivered to one: a copy waiting in the requests tray, turned away, or
+   * expired before anyone approved it, was not. Of a copy that also went to a person, it sees the agents' deliveries
+   * only. A status receipt has no delivery of its own; it goes by whom it is
+   * addressed to.
+   */
+  const visibleTo = (role: Role, views: MessageView[]): MessageView[] => {
+    if (role === 'admin') return views;
+    const isAgent = (address: string): boolean => node.core.domains.lookup(address.toLowerCase())?.type === 'agent';
+    return views.flatMap((m): MessageView[] => {
+      if (m.direction === 'out') return isAgent(m.from_addr) ? [m] : [];
+      const deliveries = m.deliveries.filter((d) => isAgent(d.recipient));
+      // Handed over means delivered, and nothing less. A copy that is held, was turned away, or
+      // expired or failed before it reached the agent never did, whatever state it ended in.
+      const handed = deliveries.some((d) => d.delivered_at !== null);
+      if (handed || (m.receipt_for !== null && m.to_addrs.some(isAgent))) return [{ ...m, deliveries }];
+      return [];
+    });
+  };
   /** Browser pages: needs the session cookie; state-changing requests must also come from this origin. */
   const requireSession = (ctx: Ctx): boolean => {
     if (!hasSession(ctx.req)) {
@@ -398,15 +419,16 @@ export function createApp(opts: AppOptions): Server {
   });
 
   router.get('/api/v0/messages/:id', async (ctx) => {
-    await requireAgent(ctx);
-    const copies = await node.status(ctx.params.id ?? '');
+    const role = await requireAgent(ctx);
+    // A copy the caller may not read is answered like one that does not exist, so ids cannot be probed.
+    const copies = visibleTo(role, await node.status(ctx.params.id ?? ''));
     if (copies.length === 0) throw new HttpError(404, 'no message with this id on this node', 'not_found');
     sendJson(ctx.res, 200, { id: ctx.params.id, copies: copies.map(messageJson) });
   });
 
   router.get('/api/v0/threads/:thread', async (ctx) => {
-    await requireAgent(ctx);
-    const messages = await node.thread(ctx.params.thread ?? '');
+    const role = await requireAgent(ctx);
+    const messages = visibleTo(role, await node.thread(ctx.params.thread ?? ''));
     sendJson(ctx.res, 200, { thread: ctx.params.thread, messages: messages.map(messageJson) });
   });
 

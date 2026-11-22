@@ -6,6 +6,8 @@
  *   node dist/demo/run.js            send the demo message and follow it to the reply
  *   node dist/demo/run.js --tamper   corrupt one byte in transit and show Side B rejecting it
  *   node dist/demo/run.js --watch    do not send; transcribe the next message the real agent sends
+ *   node dist/demo/run.js --raw      also keep the full transcript (whole signatures, delegation
+ *                                    tokens and message text) in OUT_DIR/raw, which git ignores
  *
  * Environment: STRATUS_NODE_URL, STRATUS_TOKEN (Side A's agent token),
  * FROM_ADDRESS, TO_ADDRESS, OUT_DIR (where transcripts go), TIMEOUT_MS,
@@ -26,6 +28,16 @@ const OUT_DIR = process.env.OUT_DIR ?? path.join(process.cwd(), 'demo');
 const TIMEOUT_MS = Number(process.env.TIMEOUT_MS ?? '30000');
 const MAX_SECONDS = process.env.MAX_SECONDS ? Number(process.env.MAX_SECONDS) : null;
 const MODE: 'send' | 'tamper' | 'watch' = process.argv.includes('--tamper') ? 'tamper' : process.argv.includes('--watch') ? 'watch' : 'send';
+
+/** Asked for the full record. It goes to its own directory, which git and Docker builds ignore. */
+const RAW = process.argv.includes('--raw') || process.env.RAW === '1';
+/**
+ * True when every word in the run is the demo's own: both addresses are on
+ * .localhost and the message is the scripted one. Then the text is safe to
+ * keep in the transcript. In a live run, or when watching a real agent, it is
+ * someone's actual message and is left out.
+ */
+const SCRIPTED = MODE !== 'watch' && [FROM, TO].every((address) => address.split('@')[1]?.endsWith('.localhost') ?? false);
 
 const TEXT = 'Hello from Stratus Labs. This is the first ADTP message. Please confirm receipt.';
 
@@ -73,6 +85,29 @@ function forDisplay(envelope: Envelope): Record<string, unknown> {
     ...(envelope.delegation ? { delegation: shorten(envelope.delegation) } : {}),
     signature: { ...envelope.signature, value: shorten(envelope.signature.value) },
   };
+}
+
+const JWT = /^[\w-]{8,}\.[\w-]{8,}\.[\w-]{8,}$/;
+
+/**
+ * A copy that is safe to leave in a file someone may commit or paste: every
+ * signature and token shortened, so none of it can be used, and, unless the
+ * whole run is scripted, message text and data left out.
+ */
+function redacted(value: unknown, key?: string): unknown {
+  if (typeof value === 'string') {
+    if (key === 'delegation' || JWT.test(value)) return shorten(value);
+    if (!SCRIPTED && key === 'text') return `[${value.length} characters, not recorded]`;
+    return value;
+  }
+  if (Array.isArray(value)) return value.map((item) => redacted(item, key === 'data' ? 'data' : undefined));
+  if (value !== null && typeof value === 'object') {
+    const object = value as Record<string, unknown>;
+    if (key === 'signature' && typeof object.value === 'string') return { ...object, value: shorten(object.value) };
+    if (!SCRIPTED && key === 'data') return { ...(typeof object.type === 'string' ? { type: object.type } : {}), not_recorded: true };
+    return Object.fromEntries(Object.entries(object).map(([k, v]) => [k, redacted(v, k)]));
+  }
+  return value;
 }
 
 // ---- steps -----------------------------------------------------------------------------------
@@ -312,19 +347,32 @@ async function tamper(card: ResolvedCard): Promise<Outcome> {
 
 // ---- output files --------------------------------------------------------------------------------
 
+/** Writes transcript.md and transcript.json: safe to share by default, and the full record too with --raw. */
 function writeTranscripts(card: ResolvedCard, outcome: Outcome): string[] {
+  const files = writeTranscript(card, outcome, OUT_DIR, false);
+  if (RAW) files.push(...writeTranscript(card, outcome, path.join(OUT_DIR, 'raw'), true));
+  return files;
+}
+
+function writeTranscript(card: ResolvedCard, outcome: Outcome, dir: string, raw: boolean): string[] {
+  const keep = <T>(value: T, key?: string): T => (raw ? value : (redacted(value, key) as T));
   const name = MODE === 'tamper' ? 'transcript.tamper' : 'transcript';
   const title = MODE === 'tamper' ? 'ADTP v0 demo: a tampered message is rejected' : 'ADTP v0 demo: one signed message, end to end';
+  const envelope = outcome.envelope ? keep(outcome.envelope) : null;
+  const reply = outcome.reply ? keep(outcome.reply) : null;
   const json = {
     demo: 'adtp-v0',
     mode: MODE,
     from: FROM,
     to: TO,
+    // Says what kind of record this is, so nobody takes a shortened signature for a broken one.
+    record: raw ? 'full' : SCRIPTED ? 'signatures and tokens shortened' : 'signatures and tokens shortened; message text and data left out',
     result: { ok: outcome.ok, summary: outcome.summary, elapsed_ms: outcome.elapsed_ms, statuses: outcome.statuses },
     discovery: card,
-    envelope: outcome.envelope ?? null,
-    reply: outcome.reply ?? null,
-    timeline: entries,
+    envelope,
+    reply,
+    // The lines are the runner's own words. What it attached to them is someone's data.
+    timeline: entries.map((e) => (e.detail === undefined ? e : { ...e, detail: keep(e.detail, 'detail') })),
   };
 
   const rows = entries.map((e) => `| ${e.at.slice(11, 23)} | +${(e.elapsed_ms / 1000).toFixed(3)}s | ${e.actor} | ${e.step} | ${e.text.replace(/\|/g, '\\|')} |`);
@@ -341,14 +389,23 @@ function writeTranscripts(card: ResolvedCard, outcome: Outcome): string[] {
     '|---|---|---|---|---|',
     ...rows,
     '',
-    ...(outcome.envelope
-      ? [`## The ${MODE === 'tamper' ? 'tampered ' : ''}envelope`, '', 'Signature and delegation token shortened for display.', '', '```json', JSON.stringify(forDisplay(outcome.envelope), null, 2), '```', '']
+    ...(envelope
+      ? [
+          `## The ${MODE === 'tamper' ? 'tampered ' : ''}envelope`,
+          '',
+          raw ? 'In full: the signature and any delegation token are real. Do not share or commit this file.' : `Signature and delegation token shortened for display.${SCRIPTED ? '' : ' Message text and data left out.'}`,
+          '',
+          '```json',
+          JSON.stringify(envelope, null, 2),
+          '```',
+          '',
+        ]
       : []),
-    ...(outcome.reply ? ['## The reply', '', `From \`${outcome.reply.from}\` on thread \`${outcome.reply.thread}\`:`, '', `> ${outcome.reply.text}`, ''] : []),
+    ...(reply ? ['## The reply', '', `From \`${reply.from}\` on thread \`${reply.thread}\`:`, '', `> ${reply.text}`, ''] : []),
   ].join('\n');
 
-  mkdirSync(OUT_DIR, { recursive: true });
-  const files = [path.join(OUT_DIR, `${name}.md`), path.join(OUT_DIR, `${name}.json`)];
+  mkdirSync(dir, { recursive: true });
+  const files = [path.join(dir, `${name}.md`), path.join(dir, `${name}.json`)];
   writeFileSync(files[0]!, md);
   writeFileSync(files[1]!, JSON.stringify(json, null, 2) + '\n');
   return files;

@@ -137,7 +137,10 @@ limits:
   max_age_days: 7
   # Stored messages are deleted this long after they arrived, once they have
   # also been expired for a day. Until then they are what stops a repeat of
-  # the same message from being accepted twice.
+  # the same message from being accepted twice. This is also the longest a
+  # message may live: one whose expires_at is further than this from its
+  # created_at is refused, so nothing has to be kept for longer. (Never less
+  # than the seven days a message lives when it names no expiry.)
   retention_days: 30
 
 # Delegation tokens this node signs with `adtp delegate` or POST /api/v0/delegations.

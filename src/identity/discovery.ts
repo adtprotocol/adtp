@@ -20,6 +20,8 @@ import type { Resolution, ResolvedCard, ResolvedDirectory } from '../protocol/ty
 import { httpRequest, type HttpClient } from './safe-http.js';
 
 export class DiscoveryError extends Error {}
+/** The node is already doing as many lookups as it allows itself. Nothing is wrong with the address; ask again shortly. */
+export class DiscoveryBusyError extends DiscoveryError {}
 
 export interface DiscoveryOptions {
   /** domain -> card URL template containing `{local}`. */
@@ -31,6 +33,12 @@ export interface DiscoveryOptions {
   resolveTxt?: (name: string) => Promise<string[][]>;
   http?: HttpClient;
   now?: () => number;
+  /** How many lookups may be on the network at once (default 16). */
+  maxConcurrent?: number;
+  /** How many more may wait for their turn before further ones are turned away (default 64). */
+  maxWaiting?: number;
+  /** How many cards, and how many directories, are remembered at most (default 5000 each). */
+  maxCacheEntries?: number;
 }
 
 export interface Resolver {
@@ -99,6 +107,13 @@ const MAX_REDIRECTS = 3;
 const NEGATIVE_TTL_MS = 30_000;
 /** A forced refresh (e.g. after an unknown key id) re-fetches a card at most this often, so bogus messages cannot make this node hammer someone else's. */
 const MIN_REFRESH_MS = 60_000;
+// Anyone can make this node look up a card: it has to, before it can check a signature. These
+// three numbers bound what that can cost, whatever arrives.
+const MAX_CONCURRENT = 16;
+const MAX_WAITING = 64;
+const MAX_CACHE_ENTRIES = 5000;
+/** How often entries that have expired are cleared out of the caches. */
+const SWEEP_INTERVAL_MS = 60_000;
 
 export class Discovery implements Resolver, DirectoryResolver {
   private readonly cache = new Map<string, { card?: ResolvedCard; error?: string; expires: number; fetchedAt: number }>();
@@ -106,11 +121,63 @@ export class Discovery implements Resolver, DirectoryResolver {
   private readonly resolveTxt: (name: string) => Promise<string[][]>;
   private readonly http: HttpClient;
   private readonly now: () => number;
+  /** Lookups under way, by address and by domain: a second caller joins the first instead of starting another. */
+  private readonly lookups = new Map<string, Promise<ResolvedCard>>();
+  private readonly directoryLookups = new Map<string, Promise<ResolvedDirectory>>();
+  private active = 0;
+  private readonly waiting: (() => void)[] = [];
+  private nextSweep = 0;
 
   constructor(private readonly opts: DiscoveryOptions = {}) {
     this.resolveTxt = opts.resolveTxt ?? ((name) => dnsPromises.resolveTxt(name));
     this.http = opts.http ?? httpRequest;
     this.now = opts.now ?? Date.now;
+  }
+
+  /** How much is cached and how much is under way. For tests and for anyone watching a node. */
+  stats(): { cards: number; directories: number; active: number; waiting: number } {
+    return { cards: this.cache.size, directories: this.directories.size, active: this.active, waiting: this.waiting.length };
+  }
+
+  /** Runs one lookup when there is room for it: at most `maxConcurrent` at once, and a bounded queue behind them. */
+  private async limited<T>(work: () => Promise<T>): Promise<T> {
+    if (this.active < (this.opts.maxConcurrent ?? MAX_CONCURRENT)) {
+      this.active++;
+    } else {
+      if (this.waiting.length >= (this.opts.maxWaiting ?? MAX_WAITING)) {
+        throw new DiscoveryBusyError('too many lookups are in progress on this node; try again shortly');
+      }
+      await new Promise<void>((turn) => this.waiting.push(turn)); // the one that finishes hands its place over
+    }
+    try {
+      return await work();
+    } finally {
+      const next = this.waiting.shift();
+      if (next) next();
+      else this.active--;
+    }
+  }
+
+  /**
+   * Stores a cache entry as the newest one. Entries that have expired are
+   * cleared out once a minute, and a cache that is full drops its oldest.
+   */
+  private remember<V extends { expires: number }>(cache: Map<string, V>, key: string, entry: V, now: number): void {
+    if (now >= this.nextSweep) {
+      this.nextSweep = now + SWEEP_INTERVAL_MS;
+      for (const map of [this.cache, this.directories] as Map<string, { expires: number }>[]) {
+        for (const [k, e] of map) if (e.expires <= now) map.delete(k);
+      }
+    }
+    cache.delete(key);
+    cache.set(key, entry);
+    const max = Math.max(1, this.opts.maxCacheEntries ?? MAX_CACHE_ENTRIES);
+    if (cache.size <= max) return;
+    for (const [k, e] of cache) if (e.expires <= now) cache.delete(k);
+    for (const k of cache.keys()) {
+      if (cache.size <= max) break;
+      cache.delete(k); // a Map lists its keys oldest first
+    }
   }
 
   /** The card locations to try for an address, in order. */
@@ -166,13 +233,23 @@ export class Discovery implements Resolver, DirectoryResolver {
       return cached.card;
     }
 
+    // Many messages from one sender arriving together cost one lookup, not one each.
+    const underWay = this.lookups.get(address);
+    if (underWay) return underWay;
+    const lookup = this.lookUp(address, now).finally(() => this.lookups.delete(address));
+    this.lookups.set(address, lookup);
+    return lookup;
+  }
+
+  private async lookUp(address: string, now: number): Promise<ResolvedCard> {
     try {
-      const card = await this.fetchCard(address);
-      this.cache.set(address, { card, expires: now + (this.opts.cacheTtlMs ?? 300_000), fetchedAt: now });
+      const card = await this.limited(() => this.fetchCard(address));
+      this.remember(this.cache, address, { card, expires: now + (this.opts.cacheTtlMs ?? 300_000), fetchedAt: now }, now);
       return card;
     } catch (err) {
+      if (err instanceof DiscoveryBusyError) throw err; // says nothing about the address: not remembered
       const message = (err as Error).message;
-      this.cache.set(address, { error: message, expires: now + NEGATIVE_TTL_MS, fetchedAt: now });
+      this.remember(this.cache, address, { error: message, expires: now + NEGATIVE_TTL_MS, fetchedAt: now }, now);
       throw err instanceof DiscoveryError ? err : new DiscoveryError(message);
     }
   }
@@ -239,13 +316,22 @@ export class Discovery implements Resolver, DirectoryResolver {
       if (!cached.directory) throw new DiscoveryError(cached.error ?? `could not find a directory for ${domain}`);
       return cached.directory;
     }
+    const underWay = this.directoryLookups.get(domain);
+    if (underWay) return underWay;
+    const lookup = this.lookUpDirectory(domain, now).finally(() => this.directoryLookups.delete(domain));
+    this.directoryLookups.set(domain, lookup);
+    return lookup;
+  }
+
+  private async lookUpDirectory(domain: string, now: number): Promise<ResolvedDirectory> {
     try {
-      const directory = await this.fetchDirectory(domain);
-      this.directories.set(domain, { directory, expires: now + (this.opts.cacheTtlMs ?? 300_000) });
+      const directory = await this.limited(() => this.fetchDirectory(domain));
+      this.remember(this.directories, domain, { directory, expires: now + (this.opts.cacheTtlMs ?? 300_000) }, now);
       return directory;
     } catch (err) {
+      if (err instanceof DiscoveryBusyError) throw err;
       const message = (err as Error).message;
-      this.directories.set(domain, { error: message, expires: now + NEGATIVE_TTL_MS });
+      this.remember(this.directories, domain, { error: message, expires: now + NEGATIVE_TTL_MS }, now);
       throw err instanceof DiscoveryError ? err : new DiscoveryError(message);
     }
   }

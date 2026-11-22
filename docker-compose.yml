@@ -21,8 +21,13 @@ services:
       EMAIL_INBOUND_TOKEN: ${EMAIL_INBOUND_TOKEN:-}
       # Optional: postgres://user:password@host/database to keep messages in Postgres instead of SQLite.
       DATABASE_URL: ${DATABASE_URL:-}
+    # Published on this machine only. The node speaks plain HTTP: other nodes
+    # reach it through a reverse proxy that terminates TLS. A proxy on this
+    # machine forwards to 127.0.0.1:7387 as it is. Only if the proxy runs on
+    # another machine, set ADTP_BIND to the address it reaches this one at
+    # (or 0.0.0.0) and keep the port closed to everyone else.
     ports:
-      - "${ADTP_HTTP_PORT:-7387}:7387"
+      - "${ADTP_BIND:-127.0.0.1}:${ADTP_HTTP_PORT:-7387}:7387"
     volumes:
       - ./adtp.config.yaml:/app/adtp.config.yaml:ro
       - adtp-data:/data          # signing key, API tokens, and the SQLite database
@@ -33,8 +38,10 @@ services:
   mailpit:
     image: axllent/mailpit:v1.34.0@sha256:23a2ef85bc50853ab3093645d1d64679afd8887e89da5e48a88940c172591a4e
     restart: unless-stopped
+    # The caught mail is readable by anyone who can open this page, so it is
+    # published on this machine only.
     ports:
-      - "${MAILPIT_UI_PORT:-8025}:8025"
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
 
 volumes:
   adtp-data:

@@ -3,15 +3,16 @@
   "mode": "send",
   "from": "agent@stratuslabs.localhost",
   "to": "echo@demo.adtp.localhost",
+  "record": "signatures and tokens shortened",
   "result": {
     "ok": true,
     "summary": "accepted, delivered, read, and a reply on the same thread in 0.11s",
-    "elapsed_ms": 106,
+    "elapsed_ms": 114,
     "statuses": {
-      "accepted": "2026-11-21T05:09:51.415Z",
-      "delivered": "2026-11-21T05:09:51.415Z",
-      "read": "2026-11-21T05:09:51.426Z",
-      "replied": "2026-11-21T05:09:51.439Z"
+      "accepted": "2026-11-22T17:25:13.076Z",
+      "delivered": "2026-11-22T17:25:13.075Z",
+      "read": "2026-11-22T17:25:13.090Z",
+      "replied": "2026-11-22T17:25:13.104Z"
     }
   },
   "discovery": {
@@ -20,9 +21,9 @@
     "endpoint": "http://echo-node:7387/adtp/v0/messages",
     "keys": [
       {
-        "kid": "ed25519-dc65fc07efdb9693",
+        "kid": "ed25519-055722257d987f34",
         "alg": "Ed25519",
-        "public_key": "610weugl-AUg8TukKfhlngKao6dLyZu-CVunwlDUQL8"
+        "public_key": "-ZAsnS_dhx4YWqxZBDHyuwbOS9RLU01pGu0QQIYPK-I"
       }
     ],
     "accepts": [
@@ -45,8 +46,8 @@
   },
   "envelope": {
     "adtp": "0",
-    "id": "msg_01M7Y85HMS41SDMNZBTACM8SQD",
-    "thread": "thr_01M7Y85HMSTAXEJGMRN7J8F2KZ",
+    "id": "msg_01M824MR6QDP6WS9T31F8VYCAM",
+    "thread": "thr_01M824MR6Q7P9CH22QPJ2YS58M",
     "from": "agent@stratuslabs.localhost",
     "on_behalf_of": "dylan@stratuslabs.localhost",
     "to": [
@@ -54,8 +55,8 @@
     ],
     "intent": "request",
     "priority": "normal",
-    "created_at": "2026-11-21T05:09:51Z",
-    "expires_at": "2026-11-21T06:09:51Z",
+    "created_at": "2026-11-22T17:25:13Z",
+    "expires_at": "2026-11-22T18:25:13Z",
     "requires_approval": false,
     "content": {
       "parts": [
@@ -67,21 +68,21 @@
           "type": "data",
           "data": {
             "type": "demo.ping",
-            "sent_at": "2026-11-21T05:09:51.373Z"
+            "sent_at": "2026-11-22T17:25:13.038Z"
           }
         }
       ]
     },
-    "delegation": "eyJhbGciOiJFZERTQSIsInR5cCI6ImFkdHAtZGVsZWdhdGlvbitqd3QiLCJraWQiOiJlZDI1NTE5LWM4OTdiZmFjOTExY2ExZGEifQ.eyJpc3MiOiJkeWxhbkBzdHJhdHVzbGFicy5sb2NhbGhvc3QiLCJzdWIiOiJhZ2VudEBzdHJhdHVzbGFicy5sb2NhbGhvc3QiLCJhdWQiOiJhZHRwIiwic2NvcGUiOlsicmVxdWVzdCJdLCJqdGkiOiJkbGdfWkxQbWZSVWc3bFMxZ1lMVCIsImlhdCI6MTc5NTIzNzc5MSwiZXhwIjoxNzk1MjQxMzkyfQ.KSDcAgOlFgJv1o6gk8cg0KDlg3yA1kPxq3YV1yW7a8vHQhwyzFg9xFzvr3j1CQsRNLayDhZOVTGE5P8StxQnDg",
+    "delegation": "eyJhbGciOiJFZERT…60Ex65BQ",
     "signature": {
       "alg": "Ed25519",
-      "kid": "ed25519-c897bfac911ca1da",
-      "value": "Ao_eIijW3ajOclVRbYTLnffps-Yt6sjYpEFyU4NH1A3XgKvvPG2xD9U758o7XD8A_bB0ga9NRhjQbAkmnXoiAA"
+      "kid": "ed25519-bf52033376fb727e",
+      "value": "9fsHurGGHzWgkaAB…5b7kbuDg"
     }
   },
   "reply": {
-    "id": "msg_01M7Y85HPFYBNKC06HXEMGFC6D",
-    "thread": "thr_01M7Y85HMSTAXEJGMRN7J8F2KZ",
+    "id": "msg_01M824MR8EXH81X4ZJNR0MCVQ1",
+    "thread": "thr_01M824MR6Q7P9CH22QPJ2YS58M",
     "from": "echo@demo.adtp.localhost",
     "on_behalf_of": null,
     "to": [
@@ -89,8 +90,8 @@
     ],
     "intent": "inform",
     "priority": "normal",
-    "created_at": "2026-11-21T05:09:51Z",
-    "expires_at": "2026-11-21T06:09:51Z",
+    "created_at": "2026-11-22T17:25:13Z",
+    "expires_at": "2026-11-22T18:25:13Z",
     "requires_approval": false,
     "sender_type": "agent",
     "text": "Received your request, signature verified for agent@stratuslabs.localhost acting for dylan@stratuslabs.localhost.",
@@ -101,13 +102,13 @@
       }
     ],
     "verified": {
-      "signature": "ed25519-dc65fc07efdb9693"
+      "signature": "ed25519-055722257d987f34"
     },
-    "at": "2026-11-21T05:09:51.452Z"
+    "at": "2026-11-22T17:25:13.126Z"
   },
   "timeline": [
     {
-      "at": "2026-11-21T05:09:51.367Z",
+      "at": "2026-11-22T17:25:13.032Z",
       "elapsed_ms": 16,
       "actor": "stratus",
       "step": "discover",
@@ -118,20 +119,20 @@
       }
     },
     {
-      "at": "2026-11-21T05:09:51.367Z",
-      "elapsed_ms": 16,
+      "at": "2026-11-22T17:25:13.033Z",
+      "elapsed_ms": 17,
       "actor": "stratus",
       "step": "card",
-      "text": "http://echo-node:7387/.well-known/adtp/echo  →  endpoint http://echo-node:7387/adtp/v0/messages, key ed25519-dc65fc07efdb9693",
+      "text": "http://echo-node:7387/.well-known/adtp/echo  →  endpoint http://echo-node:7387/adtp/v0/messages, key ed25519-055722257d987f34",
       "detail": {
         "address": "echo@demo.adtp.localhost",
         "type": "agent",
         "endpoint": "http://echo-node:7387/adtp/v0/messages",
         "keys": [
           {
-            "kid": "ed25519-dc65fc07efdb9693",
+            "kid": "ed25519-055722257d987f34",
             "alg": "Ed25519",
-            "public_key": "610weugl-AUg8TukKfhlngKao6dLyZu-CVunwlDUQL8"
+            "public_key": "-ZAsnS_dhx4YWqxZBDHyuwbOS9RLU01pGu0QQIYPK-I"
           }
         ],
         "accepts": [
@@ -150,26 +151,26 @@
       }
     },
     {
-      "at": "2026-11-21T05:09:51.390Z",
+      "at": "2026-11-22T17:25:13.055Z",
       "elapsed_ms": 39,
       "actor": "stratus",
       "step": "send",
-      "text": "adtp_send → msg_01M7Y85HMS41SDMNZBTACM8SQD on thr_01M7Y85HMSTAXEJGMRN7J8F2KZ",
+      "text": "adtp_send → msg_01M824MR6QDP6WS9T31F8VYCAM on thr_01M824MR6Q7P9CH22QPJ2YS58M",
       "detail": {
-        "id": "msg_01M7Y85HMS41SDMNZBTACM8SQD",
-        "thread": "thr_01M7Y85HMSTAXEJGMRN7J8F2KZ"
+        "id": "msg_01M824MR6QDP6WS9T31F8VYCAM",
+        "thread": "thr_01M824MR6Q7P9CH22QPJ2YS58M"
       }
     },
     {
-      "at": "2026-11-21T05:09:51.395Z",
-      "elapsed_ms": 44,
+      "at": "2026-11-22T17:25:13.062Z",
+      "elapsed_ms": 46,
       "actor": "stratus",
       "step": "envelope",
       "text": "signed by the node for agent@stratuslabs.localhost",
       "detail": {
         "adtp": "0",
-        "id": "msg_01M7Y85HMS41SDMNZBTACM8SQD",
-        "thread": "thr_01M7Y85HMSTAXEJGMRN7J8F2KZ",
+        "id": "msg_01M824MR6QDP6WS9T31F8VYCAM",
+        "thread": "thr_01M824MR6Q7P9CH22QPJ2YS58M",
         "from": "agent@stratuslabs.localhost",
         "on_behalf_of": "dylan@stratuslabs.localhost",
         "to": [
@@ -177,8 +178,8 @@
         ],
         "intent": "request",
         "priority": "normal",
-        "created_at": "2026-11-21T05:09:51Z",
-        "expires_at": "2026-11-21T06:09:51Z",
+        "created_at": "2026-11-22T17:25:13Z",
+        "expires_at": "2026-11-22T18:25:13Z",
         "requires_approval": false,
         "content": {
           "parts": [
@@ -190,47 +191,47 @@
               "type": "data",
               "data": {
                 "type": "demo.ping",
-                "sent_at": "2026-11-21T05:09:51.373Z"
+                "sent_at": "2026-11-22T17:25:13.038Z"
               }
             }
           ]
         },
-        "delegation": "eyJhbGciOiJFZERT…8StxQnDg",
+        "delegation": "eyJhbGciOiJFZERT…60Ex65BQ",
         "signature": {
           "alg": "Ed25519",
-          "kid": "ed25519-c897bfac911ca1da",
-          "value": "Ao_eIijW3ajOclVR…kmnXoiAA"
+          "kid": "ed25519-bf52033376fb727e",
+          "value": "9fsHurGGHzWgkaAB…5b7kbuDg"
         }
       }
     },
     {
-      "at": "2026-11-21T05:09:51.415Z",
-      "elapsed_ms": 67,
+      "at": "2026-11-22T17:25:13.076Z",
+      "elapsed_ms": 66,
       "actor": "side-b",
       "step": "accepted",
-      "text": "signature verified (key ed25519-c897bfac911ca1da); delegation verified: agent@stratuslabs.localhost acts for dylan@stratuslabs.localhost; signed receipt from echo@demo.adtp.localhost checked",
+      "text": "signature verified (key ed25519-bf52033376fb727e); delegation verified: agent@stratuslabs.localhost acts for dylan@stratuslabs.localhost; signed receipt from echo@demo.adtp.localhost checked",
       "detail": {
         "seq": 1,
         "type": "status",
         "address": "agent@stratuslabs.localhost",
-        "message_id": "msg_01M7Y85HMS41SDMNZBTACM8SQD",
-        "thread": "thr_01M7Y85HMSTAXEJGMRN7J8F2KZ",
+        "message_id": "msg_01M824MR6QDP6WS9T31F8VYCAM",
+        "thread": "thr_01M824MR6Q7P9CH22QPJ2YS58M",
         "recipient": "echo@demo.adtp.localhost",
         "status": "accepted",
-        "at": "2026-11-21T05:09:51.415Z",
+        "at": "2026-11-22T17:25:13.076Z",
         "verified": {
-          "signature": "ed25519-c897bfac911ca1da",
+          "signature": "ed25519-bf52033376fb727e",
           "delegation": "dylan@stratuslabs.localhost"
         },
         "receipt": {
           "by": "echo@demo.adtp.localhost",
-          "kid": "ed25519-dc65fc07efdb9693"
+          "kid": "ed25519-055722257d987f34"
         }
       }
     },
     {
-      "at": "2026-11-21T05:09:51.415Z",
-      "elapsed_ms": 79,
+      "at": "2026-11-22T17:25:13.075Z",
+      "elapsed_ms": 84,
       "actor": "side-b",
       "step": "delivered",
       "text": "handed to echo@demo.adtp.localhost",
@@ -238,16 +239,16 @@
         "seq": 2,
         "type": "status",
         "address": "agent@stratuslabs.localhost",
-        "message_id": "msg_01M7Y85HMS41SDMNZBTACM8SQD",
-        "thread": "thr_01M7Y85HMSTAXEJGMRN7J8F2KZ",
+        "message_id": "msg_01M824MR6QDP6WS9T31F8VYCAM",
+        "thread": "thr_01M824MR6Q7P9CH22QPJ2YS58M",
         "recipient": "echo@demo.adtp.localhost",
         "status": "delivered",
-        "at": "2026-11-21T05:09:51.415Z"
+        "at": "2026-11-22T17:25:13.075Z"
       }
     },
     {
-      "at": "2026-11-21T05:09:51.426Z",
-      "elapsed_ms": 85,
+      "at": "2026-11-22T17:25:13.090Z",
+      "elapsed_ms": 100,
       "actor": "side-b",
       "step": "read",
       "text": "echo@demo.adtp.localhost marked it read",
@@ -255,16 +256,16 @@
         "seq": 3,
         "type": "status",
         "address": "agent@stratuslabs.localhost",
-        "message_id": "msg_01M7Y85HMS41SDMNZBTACM8SQD",
-        "thread": "thr_01M7Y85HMSTAXEJGMRN7J8F2KZ",
+        "message_id": "msg_01M824MR6QDP6WS9T31F8VYCAM",
+        "thread": "thr_01M824MR6Q7P9CH22QPJ2YS58M",
         "recipient": "echo@demo.adtp.localhost",
         "status": "read",
-        "at": "2026-11-21T05:09:51.426Z"
+        "at": "2026-11-22T17:25:13.090Z"
       }
     },
     {
-      "at": "2026-11-21T05:09:51.439Z",
-      "elapsed_ms": 97,
+      "at": "2026-11-22T17:25:13.104Z",
+      "elapsed_ms": 106,
       "actor": "side-b",
       "step": "replied",
       "text": "echo@demo.adtp.localhost answered",
@@ -272,22 +273,22 @@
         "seq": 4,
         "type": "status",
         "address": "agent@stratuslabs.localhost",
-        "message_id": "msg_01M7Y85HMS41SDMNZBTACM8SQD",
-        "thread": "thr_01M7Y85HMSTAXEJGMRN7J8F2KZ",
+        "message_id": "msg_01M824MR6QDP6WS9T31F8VYCAM",
+        "thread": "thr_01M824MR6Q7P9CH22QPJ2YS58M",
         "recipient": "echo@demo.adtp.localhost",
         "status": "replied",
-        "at": "2026-11-21T05:09:51.439Z"
+        "at": "2026-11-22T17:25:13.104Z"
       }
     },
     {
-      "at": "2026-11-21T05:09:51.452Z",
-      "elapsed_ms": 105,
+      "at": "2026-11-22T17:25:13.126Z",
+      "elapsed_ms": 114,
       "actor": "side-b",
       "step": "reply",
-      "text": "inform from echo@demo.adtp.localhost on thr_01M7Y85HMSTAXEJGMRN7J8F2KZ",
+      "text": "inform from echo@demo.adtp.localhost on thr_01M824MR6Q7P9CH22QPJ2YS58M",
       "detail": {
-        "id": "msg_01M7Y85HPFYBNKC06HXEMGFC6D",
-        "thread": "thr_01M7Y85HMSTAXEJGMRN7J8F2KZ",
+        "id": "msg_01M824MR8EXH81X4ZJNR0MCVQ1",
+        "thread": "thr_01M824MR6Q7P9CH22QPJ2YS58M",
         "from": "echo@demo.adtp.localhost",
         "on_behalf_of": null,
         "to": [
@@ -295,8 +296,8 @@
         ],
         "intent": "inform",
         "priority": "normal",
-        "created_at": "2026-11-21T05:09:51Z",
-        "expires_at": "2026-11-21T06:09:51Z",
+        "created_at": "2026-11-22T17:25:13Z",
+        "expires_at": "2026-11-22T18:25:13Z",
         "requires_approval": false,
         "sender_type": "agent",
         "text": "Received your request, signature verified for agent@stratuslabs.localhost acting for dylan@stratuslabs.localhost.",
@@ -307,17 +308,17 @@
           }
         ],
         "verified": {
-          "signature": "ed25519-dc65fc07efdb9693"
+          "signature": "ed25519-055722257d987f34"
         },
-        "at": "2026-11-21T05:09:51.452Z"
+        "at": "2026-11-22T17:25:13.126Z"
       }
     },
     {
-      "at": "2026-11-21T05:09:51.457Z",
-      "elapsed_ms": 106,
+      "at": "2026-11-22T17:25:13.130Z",
+      "elapsed_ms": 114,
       "actor": "stratus",
       "step": "verify",
-      "text": "reply signature verified (key ed25519-dc65fc07efdb9693)"
+      "text": "reply signature verified (key ed25519-055722257d987f34)"
     }
   ]
 }

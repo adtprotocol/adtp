@@ -103,8 +103,11 @@ ADTP v0 demo  agent@stratuslabs.localhost → echo@demo.adtp.localhost
 ```
 
 The same transcript is written to [`demo/transcript.md`](demo/transcript.md)
-(pasteable) and [`demo/transcript.json`](demo/transcript.json) (complete,
-including the full envelope). The script exits non-zero if any step is missing,
+and [`demo/transcript.json`](demo/transcript.json). Both are safe to paste or
+commit: signatures and delegation tokens are shortened, and in a run that is
+not the scripted local one (`--public`, `--watch`) the message text and data
+are left out too. `--raw` also writes the full record, whole tokens and text
+included, to `demo/raw/`, which git and Docker builds ignore. The script exits non-zero if any step is missing,
 so it also works as a CI check.
 
 | Command | What it does |
@@ -113,6 +116,7 @@ so it also works as a CI check.
 | `bash demo/run.sh --tamper` | Flip one byte of the signed envelope in transit. Side B must reject it. |
 | `bash demo/run.sh --watch` | Do not send; transcribe the next message the real Stratus agent sends. |
 | `bash demo/run.sh --public` | Run against the real Side A node (see below). |
+| `bash demo/run.sh --raw` | Also keep the full transcript in `demo/raw/`. Add it to any of the above. |
 | `bash demo/run.sh --build` | Rebuild the image first, after changing code. |
 | `bash demo/run.sh --reset` / `--down` | Wipe both local nodes' data first / stop and remove everything. |
 | `bash demo/split.sh [flags]` | Split screen in tmux: the run on the left, Side B's agent log on the right. |
@@ -379,7 +383,8 @@ Database: SQLite file /data/adtp.db
 | Where other nodes send envelopes | `POST http://localhost:7387/adtp/v0/messages` |
 | Caught emails | http://localhost:8025 |
 
-The node listens on port 7387. Both tokens are generated on first run and kept
+The node listens on port 7387, and Compose publishes it and the mail catcher
+on this machine only (`127.0.0.1`). Both tokens are generated on first run and kept
 out of the logs. Read them with:
 
 ```sh
@@ -451,7 +456,7 @@ the container. It is commented throughout; the sections are:
 | `channels.email` | SMTP settings, the From address, the inbound-reply token, read receipts. |
 | `rate_limits` | Hourly limits for first-contact senders, per sender and per organization. |
 | `delivery` | Maximum attempts and backoff for retries. |
-| `limits` | `max_age_days`: how old a message's `created_at` may be (7). `retention_days`: how long stored messages are kept (30). |
+| `limits` | `max_age_days`: how old a message's `created_at` may be (7). `retention_days`: how long stored messages are kept (30), and so the longest a message may live: one that expires later than that after its `created_at` is refused. |
 | `delegation` | Default and maximum lifetime of the delegation tokens this node signs (24 hours, 7 days). |
 | `discovery` | Card cache time, and local-development overrides. |
 | `plugins` | Extra channel adapters to load. |
@@ -586,7 +591,12 @@ hour to the same sender.
 1. **Addresses.** Set `domain` (say `example.com`) and list your `addresses`.
 2. **Public URL.** Put the node behind a TLS-terminating reverse proxy and set
    `public_url` to its https URL, for example `https://adtp.example.com`.
-   Other nodes refuse to fetch cards or deliver over plain http.
+   Other nodes refuse to fetch cards or deliver over plain http. Compose
+   publishes the node's port on `127.0.0.1` only, which is where a proxy on the
+   same machine finds it. If the proxy runs on another machine, set
+   `ADTP_BIND` to the address it reaches this one at (`ADTP_BIND=0.0.0.0` for
+   all of them) and let nothing but the proxy through to that port: the node
+   itself speaks plain HTTP.
 3. **DNS.** Start the node (or run `docker compose exec node adtp keys show`)
    and add the TXT record it prints:
 
@@ -621,9 +631,46 @@ hour to the same sender.
    two tokens and, on SQLite, every message.
 
 The messages endpoint (`/adtp/v0/messages`) is open to the internet by design:
-anyone may post, and nothing is stored until a signature verifies. Rate-limit
-it at your proxy. Keep `/api/v0` and `/admin` off the public internet if you
-can; they are guarded by the tokens either way.
+anyone may post, and nothing is stored until a signature verifies. Checking a
+signature means fetching the sender's card, so every post from a sender the
+node has not seen costs it a DNS lookup and an HTTPS request. The node bounds
+that work itself: one lookup per address at a time, at most 16 lookups in
+progress with 64 more waiting (further ones are answered `503`, which senders
+retry), and a card cache of at most 5000 entries. It does not limit requests
+per client address. Do that at your proxy, for the two public paths:
+
+| Path | Limit per client IP | Why |
+|---|---|---|
+| `POST /adtp/v0/messages` | About 5 requests a second, bursts of 20, at most 10 connections. Body at most 300 KB. | A node delivering a backlog sends a few messages a second. An envelope is at most 256 KB. |
+| `GET /.well-known/adtp` and below | About 10 requests a second, bursts of 40. | Cards and the directory are small and other nodes cache them for minutes. |
+
+With nginx, for example:
+
+```nginx
+limit_req_zone  $binary_remote_addr zone=adtp_messages:10m rate=5r/s;
+limit_req_zone  $binary_remote_addr zone=adtp_cards:10m    rate=10r/s;
+limit_conn_zone $binary_remote_addr zone=adtp_conn:10m;
+
+location = /adtp/v0/messages {
+  limit_req  zone=adtp_messages burst=20 nodelay;
+  limit_conn adtp_conn 10;
+  limit_req_status 429;
+  client_max_body_size 300k;
+  proxy_pass http://127.0.0.1:7387;
+}
+location /.well-known/adtp {
+  limit_req zone=adtp_cards burst=40 nodelay;
+  limit_req_status 429;
+  proxy_pass http://127.0.0.1:7387;
+}
+```
+
+Caddy, which the examples here use for certificates, has no rate limiter in its
+standard build: add one as a plugin, or put the limits in whatever sits in
+front of it. A hosting platform's own edge limits serve the same purpose.
+
+Keep `/api/v0` and `/admin` off the public internet if you can; they are
+guarded by the tokens either way.
 
 ### The directory
 
@@ -731,8 +778,8 @@ the node's agent addresses: it cannot send as a person or read a person's feed.
 | `POST /api/v0/messages` | Send from a hosted address. Body: `from`, `to` (address or list), `intent`, `text`, and optionally `data`, `thread`, `priority` (`low`, `normal`, `urgent`), `expires_at` (default: seven days from now), `requires_approval`, `on_behalf_of` (leave it out to use the agent's configured `acts_for`; `null` to send as the address itself), `delegation`, `id`, `in_reply_to` (marks that received message replied, if this one is addressed to its sender), `dry_run` (sign only; returns the envelope). |
 | `POST /api/v0/messages/{id}/read` | Body: `recipient`, and optionally `from` (the sender, in the rare case two senders used the same id). Marks a received message read and tells the sender. |
 | `GET /api/v0/events` | An address's feed. Query: `address`, `after` (a sequence number, or `latest`), `wait` (seconds to hold the request open), `limit`. |
-| `GET /api/v0/messages/{id}` | Delivery state per recipient and the signed envelope, for the sent and/or received copy. |
-| `GET /api/v0/threads/{thread}` | Every message on a thread, oldest first. |
+| `GET /api/v0/messages/{id}` | Delivery state per recipient and the signed envelope, for the sent and/or received copy. The agent token gets only copies an agent address sent or had delivered to it, and `404` if there is none. |
+| `GET /api/v0/threads/{thread}` | Every message on a thread, oldest first. The agent token gets only the messages an agent address sent or had delivered to it. |
 | `GET /api/v0/resolve` | Query: `address`. The card this node resolves for it, and how it was found. |
 | `GET /api/v0/directory` | Query: `domain`. The addresses that domain lists and what each is for, and how the directory was found. `502` if the domain publishes none. |
 

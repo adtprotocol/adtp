@@ -110,6 +110,14 @@ export class Receiver {
       return refuse(env.id, { code: 'expired', message: `created_at is older than this node accepts (${core.config.limits.max_age_seconds} seconds)` });
     }
 
+    // A message stays stored until it has expired, so one that expires far ahead would have to be
+    // kept far longer than this node keeps messages. It is refused instead.
+    const maxLifetimeMs = core.config.limits.max_lifetime_seconds * 1000;
+    if (v.expiresAt.getTime() > v.createdAt.getTime() + maxLifetimeMs) {
+      const days = Math.floor(core.config.limits.max_lifetime_seconds / 86400);
+      return refuse(env.id, { code: 'invalid_envelope', message: `expires_at is more than ${days} days after created_at, which is longer than this node keeps a message` });
+    }
+
     const receipt = receiptOf(env);
     if (receipt) return { ack: await this.acceptReceipt(v, receipt, hosted, verified, now), duplicate: false };
 
@@ -240,9 +248,12 @@ export class Receiver {
     const by = stored.ack?.by ?? hosted[0]!;
     const storedAck: Ack = stored.ack ?? this.sign({ adtp: ADTP_VERSION, id, from: v.from, by, status: 'accepted', at: now.toISOString() });
 
+    // A retry may add a delivery only while the message could still be accepted as new: not after
+    // it expired, and not once its created_at is older than this node accepts. After that the stored answer stands.
     const expired = stored.expires_at.getTime() <= now.getTime();
+    const tooOld = v.createdAt.getTime() + core.config.limits.max_age_seconds * 1000 <= now.getTime();
     const again = Object.keys(storedAck.recipients ?? {}).filter((recipient) => mayRetry(storedAck.recipients?.[recipient]));
-    if (again.length === 0 || expired) return { ack: storedAck, duplicate: true };
+    if (again.length === 0 || expired || tooOld) return { ack: storedAck, duplicate: true };
 
     const fresh = await this.decide(again, stored.from_addr, stored.intent, now);
     if (Object.values(fresh).every(mayRetry)) {

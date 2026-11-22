@@ -6,7 +6,7 @@
  */
 import assert from 'node:assert/strict';
 import { spawn, type ChildProcess } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import type { Server } from 'node:http';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -169,7 +169,7 @@ describe('the demo, local mode', { skip }, () => {
   });
 
   it('run.js: one signed message is accepted, delivered, read and answered, in under five seconds', async () => {
-    const run = runScript('run.js', [], { ...runnerEnv(), MAX_SECONDS: '5' });
+    const run = runScript('run.js', ['--raw'], { ...runnerEnv(), MAX_SECONDS: '5' });
     const code = await run.exited;
     const out = run.output();
     assert.equal(code, 0, out);
@@ -182,8 +182,9 @@ describe('the demo, local mode', { skip }, () => {
     assert.match(out, /"Received your request, signature verified for agent@stratuslabs\.localhost acting for dylan@stratuslabs\.localhost\."/);
     assert.match(out, /✓ accepted, delivered, read, and a reply on the same thread in \d+\.\d\ds/);
 
-    // transcript.json: the full record.
-    const transcript = JSON.parse(readFileSync(path.join(dir, 'transcript.json'), 'utf8'));
+    // raw/transcript.json: the full record, written only because the run asked for it with --raw.
+    const transcript = JSON.parse(readFileSync(path.join(dir, 'raw', 'transcript.json'), 'utf8'));
+    assert.equal(transcript.record, 'full');
     assert.equal(transcript.result.ok, true);
     assert.ok(transcript.result.elapsed_ms < 5000);
     assert.deepEqual(Object.keys(transcript.result.statuses), ['accepted', 'delivered', 'read', 'replied']);
@@ -232,12 +233,26 @@ describe('the demo, local mode', { skip }, () => {
     assert.equal(onEcho.json.copies[0].deliveries[0].state, 'replied');
     assert.equal(onEcho.json.copies[0].deliveries[0].channel, 'agent');
 
-    // transcript.md: pasteable, with the signature shortened.
+    // transcript.md and transcript.json, the ones written by default: pasteable. No whole signature
+    // and no whole delegation token anywhere in them; the scripted text stays.
     const md = readFileSync(path.join(dir, 'transcript.md'), 'utf8');
     assert.match(md, /^# ADTP v0 demo: one signed message, end to end/);
     assert.match(md, /\*\*Result:\*\* ✅/);
-    assert.ok(!md.includes(envelope.signature.value), 'the full signature is not pasted into the markdown');
     assert.ok(md.includes(envelope.signature.value.slice(0, 16)));
+    const sharedText = readFileSync(path.join(dir, 'transcript.json'), 'utf8');
+    const shared = JSON.parse(sharedText);
+    assert.equal(shared.record, 'signatures and tokens shortened');
+    for (const [name, text] of [['transcript.md', md], ['transcript.json', sharedText]] as const) {
+      assert.ok(!text.includes(envelope.signature.value), `${name}: the full signature is not in it`);
+      assert.ok(!text.includes(envelope.delegation!), `${name}: the full delegation token is not in it`);
+      assert.ok(!/eyJ[\w-]{20,}\.[\w-]{20,}\.[\w-]{20,}/.test(text), `${name}: no whole token of any kind`);
+    }
+    assert.deepEqual(verifySignature(shared.envelope, stratus.keyring.publicKeys(), new Date()), { ok: false, reason: 'malformed' }, 'what is shared cannot be replayed');
+    assert.equal(shared.envelope.content.parts[0].text, envelope.content.parts[0]!.type === 'text' ? envelope.content.parts[0]!.text : '');
+    assert.equal(shared.reply.text, transcript.reply.text);
+    assert.deepEqual(shared.result, transcript.result);
+    const rawMd = readFileSync(path.join(dir, 'raw', 'transcript.md'), 'utf8');
+    assert.ok(rawMd.includes(envelope.signature.value) && /Do not share or commit this file/.test(rawMd));
 
     // Side B's own log tells the same story.
     await eventually(async () => echoAgent.output().includes('replied with msg_'), 5000, "the echo agent's log");
@@ -249,7 +264,7 @@ describe('the demo, local mode', { skip }, () => {
   });
 
   it('run.js --tamper: one flipped byte and Side B rejects the envelope with a signature error', async () => {
-    const run = runScript('run.js', ['--tamper'], runnerEnv());
+    const run = runScript('run.js', ['--tamper', '--raw'], runnerEnv());
     const code = await run.exited;
     const out = run.output();
     assert.equal(code, 0, out);
@@ -257,7 +272,7 @@ describe('the demo, local mode', { skip }, () => {
     assert.match(out, /rejected +HTTP 401 {2}bad_signature: the envelope signature does not verify against key "ed25519-[0-9a-f]{16}" of agent@stratuslabs\.localhost/);
     assert.match(out, /✓ Side B refused the tampered envelope/);
 
-    const transcript = JSON.parse(readFileSync(path.join(dir, 'transcript.tamper.json'), 'utf8'));
+    const transcript = JSON.parse(readFileSync(path.join(dir, 'raw', 'transcript.tamper.json'), 'utf8'));
     assert.equal(transcript.mode, 'tamper');
     assert.equal(transcript.result.ok, true);
     assert.deepEqual(verifySignature(transcript.envelope, stratus.keyring.publicKeys(), new Date()), { ok: false, reason: 'invalid' });
@@ -305,6 +320,17 @@ describe('the demo, local mode', { skip }, () => {
     assert.match(run.output(), /Sent by the agent, not by the script\./);
     assert.match(run.output(), /✓ accepted, delivered, read, and a reply/);
     assert.ok(!run.output().includes(older.json.id), 'the older message is not what was transcribed');
+
+    // What it watched is a real agent's message, not the script's: the files keep its shape, not its words.
+    assert.ok(!existsSync(path.join(dir, 'raw', 'transcript.json')) || !readFileSync(path.join(dir, 'raw', 'transcript.json'), 'utf8').includes('Sent by the agent'), 'no full record unless asked for');
+    const written = readFileSync(path.join(dir, 'transcript.json'), 'utf8') + readFileSync(path.join(dir, 'transcript.md'), 'utf8');
+    assert.ok(!written.includes('Sent by the agent, not by the script.'));
+    assert.ok(!written.includes('Received your request'), 'nor the reply to it');
+    const watched = JSON.parse(readFileSync(path.join(dir, 'transcript.json'), 'utf8'));
+    assert.equal(watched.record, 'signatures and tokens shortened; message text and data left out');
+    assert.equal(watched.envelope.id, (sent as { id: string }).id);
+    assert.match(watched.envelope.content.parts[0].text, /^\[\d+ characters, not recorded\]$/);
+    assert.match(watched.reply.text, /^\[\d+ characters, not recorded\]$/);
   });
 
   it('the tool surfaces statuses and the reply through its callbacks', async () => {

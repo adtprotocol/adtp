@@ -13,8 +13,10 @@ RUN npm ci
 COPY tsconfig.json SPEC.md ./
 COPY src ./src
 COPY test ./test
-COPY demo ./demo
-COPY examples ./examples
+# Of demo/ and examples/, only the TypeScript: people keep .env files with real
+# tokens next to the Compose files there. (.dockerignore leaves those out as well.)
+COPY demo/*.ts ./demo/
+COPY examples/email-tray/*.ts ./examples/email-tray/
 COPY integrations ./integrations
 COPY migrations ./migrations
 RUN npm run build
@@ -24,8 +26,10 @@ RUN npm run build
 # scripts with bash, and some read the deployment files at the repository root.
 FROM build AS test
 RUN apk add --no-cache bash
+COPY demo ./demo
+COPY examples ./examples
 COPY deploy ./deploy
-COPY Dockerfile render.yaml fly.toml ./
+COPY Dockerfile .dockerignore docker-compose.yml render.yaml fly.toml ./
 
 # ---- runtime: production dependencies + compiled output ---------------------------
 # The last stage, so a plain `docker build .` produces this one.

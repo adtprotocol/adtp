@@ -1,7 +1,19 @@
 node_modules
 dist
-data
 .git
 *.log
-.env
-.env.*
+
+# Credentials and key material, at any depth: the deployment guides have you
+# create .env files next to the Compose files under demo/ and examples/, and
+# the build copies from those directories.
+**/.env
+**/.env.*
+**/*.env
+!**/.env.example
+**/keyring.json
+**/admin-token
+**/agent-token
+**/data
+
+# Raw demo transcripts (full messages and delegation tokens); see demo/run.sh --raw.
+demo/raw

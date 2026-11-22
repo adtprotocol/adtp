@@ -44,7 +44,7 @@ describe('config', () => {
     assert.equal(config.agent.token_file, '/srv/adtp/data/agent-token');
     assert.equal(config.listen.port, 7387);
     assert.equal(config.keys.rotation_grace_days, 30);
-    assert.deepEqual(config.limits, { max_age_seconds: 7 * 86400, retention_days: 30 });
+    assert.deepEqual(config.limits, { max_age_seconds: 7 * 86400, retention_days: 30, max_lifetime_seconds: 30 * 86400 });
     assert.deepEqual(config.delegation, { default_ttl_seconds: 24 * 3600, max_ttl_seconds: 7 * 24 * 3600 });
     assert.deepEqual(config.rate_limits.unknown_sender, { per_sender_per_hour: 5, per_org_per_hour: 20 });
     assert.equal(config.delivery.max_attempts, 8);
@@ -85,7 +85,9 @@ describe('config', () => {
       { ...base(), limits: { max_age_days: 2, retention_days: 10 }, delegation: { default_ttl_hours: 1, max_ttl_hours: 48 } },
       { SMTP_PASS: 'x' },
     );
-    assert.deepEqual(config.limits, { max_age_seconds: 2 * 86400, retention_days: 10 });
+    assert.deepEqual(config.limits, { max_age_seconds: 2 * 86400, retention_days: 10, max_lifetime_seconds: 10 * 86400 });
+    // A message that names no expiry lives seven days, so the bound is never shorter than that.
+    assert.equal(parseConfig({ ...base(), limits: { retention_days: 2 } }, { SMTP_PASS: 'x' }).limits.max_lifetime_seconds, 7 * 86400);
     assert.deepEqual(config.delegation, { default_ttl_seconds: 3600, max_ttl_seconds: 48 * 3600 });
     assert.throws(() => parseConfig({ ...base(), delegation: { default_ttl_hours: 48, max_ttl_hours: 24 } }, { SMTP_PASS: 'x' }), /cannot be larger than/);
     assert.throws(() => parseConfig({ ...base(), limits: { retention_days: 0 } }, { SMTP_PASS: 'x' }), /retention_days must be a number >= 1/);
