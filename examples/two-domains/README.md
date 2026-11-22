@@ -151,7 +151,7 @@ To answer a received message from the command line instead of the browser, add
 | The admin page refuses the token | Use `ADTP_ADMIN_TOKEN` from that server's `.env`, not the agent token. |
 
 `docker compose logs node` on either server shows what that node did with each
-message. The main [README](../../README.md#on-two-real-domains) has a longer
+message. The demo's [README](../../demo/README.md#on-two-real-domains) has a longer
 list.
 
 ## Afterwards
