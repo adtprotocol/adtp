@@ -9,7 +9,7 @@ import path from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import { dialectOf, sqlitePath } from './db/index.js';
 import { isValidDomain, isValidLocalPart, parseAddress } from './protocol/address.js';
-import { DEFAULT_MAX_AGE_SECONDS, DIRECTORY_PATH, INTENTS, MAX_DESCRIPTION_LENGTH, PRIORITIES, WELL_KNOWN_PREFIX } from './protocol/constants.js';
+import { DEFAULT_LIFETIME_SECONDS, DEFAULT_MAX_AGE_SECONDS, DIRECTORY_PATH, INTENTS, MAX_DESCRIPTION_LENGTH, PRIORITIES, WELL_KNOWN_PREFIX } from './protocol/constants.js';
 import { cleanDescription } from './protocol/directory.js';
 import type { CardType } from './protocol/types.js';
 
@@ -116,6 +116,13 @@ export interface NodeConfig {
     max_age_seconds: number;
     /** Stored messages are deleted this long after they arrived, once they have also expired. */
     retention_days: number;
+    /**
+     * The longest a message may live: from its created_at to its expires_at.
+     * Not a setting of its own. It is the retention period, so that nothing
+     * has to be kept for longer than that, and never less than the lifetime a
+     * message has when it names none.
+     */
+    max_lifetime_seconds: number;
   };
   delegation: {
     /** Life of a delegation token when the caller does not ask for one. */
@@ -304,6 +311,7 @@ export function parseConfig(raw: unknown, env: NodeJS.ProcessEnv = process.env, 
   const admin = root.section('admin');
   const agent = root.section('agent');
   const limits = root.section('limits');
+  const retentionDays = limits.num('retention_days', 30, 1);
   const delegation = root.section('delegation');
 
   const rawAddresses = root.raw('addresses');
@@ -454,7 +462,8 @@ export function parseConfig(raw: unknown, env: NodeJS.ProcessEnv = process.env, 
     },
     limits: {
       max_age_seconds: Math.floor(limits.num('max_age_days', DEFAULT_MAX_AGE_SECONDS / 86400, 0.001) * 86400),
-      retention_days: limits.num('retention_days', 30, 1),
+      retention_days: retentionDays,
+      max_lifetime_seconds: Math.max(Math.floor(retentionDays * 86400), DEFAULT_LIFETIME_SECONDS),
     },
     delegation: {
       default_ttl_seconds: Math.floor(delegation.num('default_ttl_hours', 24, 0.01) * 3600),

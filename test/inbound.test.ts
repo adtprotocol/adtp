@@ -244,7 +244,8 @@ describe('inbound pipeline', { skip }, () => {
       // Seven days is the default window.
       await expectRejected(fromAlice({ created_at: ago(8), expires_at: farFuture }), 'expired');
       await expectRejected(fromAlice({ created_at: ago(8) }), 'expired');
-      assert.equal((await t.node.receive(fromAlice({ created_at: ago(6), expires_at: farFuture }))).status, 'queued');
+      const threeWeeksOn = new Date(t.clock.now().getTime() + 21 * 86_400_000).toISOString();
+      assert.equal((await t.node.receive(fromAlice({ created_at: ago(6), expires_at: threeWeeksOn }))).status, 'queued');
     });
 
     it('makes the window for created_at configurable', async () => {
@@ -547,6 +548,27 @@ describe('inbound pipeline', { skip }, () => {
       assert.equal(await deliveryState(env.id, 'helper@b.test'), undefined);
     });
 
+    it('leaves a turned-away recipient turned away once the message is older than the node accepts', async () => {
+      await t.close();
+      t = await createTestNode('b.test', { rate_limits: { unknown_sender: { per_sender_per_hour: 1, per_org_per_hour: 100 } } });
+      t.resolver.add(alice.card('alice@a.test'));
+      await trustAlice('bob@b.test');
+      await t.node.receive(fromAlice({ to: ['helper@b.test'] }));
+
+      // Not expired for another three weeks, but a week from now its created_at is too old to accept.
+      const day = 86_400_000;
+      const env = fromAlice({ to: ['bob@b.test', 'helper@b.test'], expires_at: new Date(t.clock.now().getTime() + 21 * day).toISOString() });
+      const first = await t.node.receive(env);
+      assert.equal(first.status, 'accepted');
+      assert.equal(first.recipients!['helper@b.test']!.reason?.code, 'rate_limited');
+
+      t.clock.advance(7 * day + 60_000);
+      assert.deepEqual(await t.node.receive(env), first, 'the stored answer stands');
+      assert.equal(await deliveryState(env.id, 'helper@b.test'), undefined, 'no delivery is added for it');
+      assert.ok(!(await t.node.tray()).some((i) => i.message.id === env.id));
+      assert.equal(await count('deliveries WHERE message_id = $1', [env.id]), 1);
+    });
+
     it('does not rate-limit known senders', async () => {
       await t.close();
       t = await createTestNode('b.test', { rate_limits: { unknown_sender: { per_sender_per_hour: 1, per_org_per_hour: 1 } } });
@@ -563,7 +585,7 @@ describe('inbound pipeline', { skip }, () => {
       const env = fromAlice({ expires_at: new Date(t.clock.now().getTime() + day).toISOString() });
       assert.equal((await t.node.receive(env)).status, 'accepted');
       await t.node.worker.drain();
-      const kept = fromAlice({ expires_at: new Date(t.clock.now().getTime() + 60 * day).toISOString() });
+      const kept = fromAlice({ expires_at: new Date(t.clock.now().getTime() + 30 * day).toISOString() });
       await t.node.receive(kept);
       await t.node.worker.drain();
       assert.equal(await count("messages WHERE direction = 'in'"), 2);
@@ -575,7 +597,7 @@ describe('inbound pipeline', { skip }, () => {
       assert.equal((await t.node.handle(env)).duplicate, true);
 
       // Past retention: the message and its receipts are gone...
-      t.clock.advance(25 * day);
+      t.clock.advance(23.5 * day);
       await t.node.worker.tick();
       assert.equal(await t.node.store.getMessage('in', env.from, env.id), null);
       assert.equal(await count('messages WHERE receipt_for = $1', [env.id]), 0, 'the receipts this node sent for it are purged too');
@@ -586,8 +608,64 @@ describe('inbound pipeline', { skip }, () => {
       assert.equal(replay.reason?.code, 'expired');
       assert.equal(t.adapter.delivered.filter((d) => d.message.id === env.id).length, 1, 'delivered once, ever');
 
-      // A message that has not expired keeps its record however long ago it arrived.
+      // A message that has not been expired for a day keeps its record, though it arrived longer ago than that.
       assert.ok(await t.node.store.getMessage('in', kept.from, kept.id));
+      assert.equal((await t.node.handle(kept)).duplicate, true);
+      t.clock.advance(2 * day);
+      await t.node.worker.tick();
+      assert.equal(await t.node.store.getMessage('in', kept.from, kept.id), null);
+    });
+
+    it('refuses a message that would have to be kept for longer than the retention period', async () => {
+      await trustAlice();
+      const day = 86_400_000;
+      const at = (ms: number) => new Date(ms).toISOString();
+      const created = Math.floor(t.clock.now().getTime() / 1000) * 1000;
+
+      const farAhead = await t.node.receive(fromAlice({ created_at: at(created), expires_at: '2099-01-01T00:00:00Z' }));
+      assert.equal(farAhead.status, 'rejected');
+      assert.equal(farAhead.reason?.code, 'invalid_envelope');
+      assert.match(farAhead.reason!.message, /expires_at is more than 30 days after created_at/);
+      assert.equal(farAhead.reason?.retryable ?? false, false);
+      assert.equal((await t.node.receive(fromAlice({ created_at: at(created), expires_at: at(created + 30 * day + 1000) }))).status, 'rejected');
+      assert.equal(await count("messages WHERE direction = 'in'"), 0, 'a refused message is not stored');
+
+      // Exactly the retention period is fine, and so is a message that names no expiry.
+      assert.equal((await t.node.receive(fromAlice({ created_at: at(created), expires_at: at(created + 30 * day) }))).status, 'accepted');
+      assert.equal((await t.node.receive(fromAlice())).status, 'accepted');
+
+      // This node holds itself to the same bound when it sends.
+      await assert.rejects(
+        t.node.submit({ from: 'bob@b.test', to: ['alice@a.test'], intent: 'inform', text: 'see you next century', expires_at: '2099-01-01T00:00:00Z' }),
+        /expires_at is more than 30 days ahead/,
+      );
+      assert.equal(await count("messages WHERE direction = 'out' AND receipt_for IS NULL"), 0);
+    });
+
+    it('gives a message stored before that rule the same bound, so it is deleted in the end', async () => {
+      await trustAlice();
+      const day = 86_400_000;
+      const env = fromAlice();
+      assert.equal((await t.node.receive(env)).status, 'accepted');
+      await t.node.worker.drain();
+      // As an earlier build would have stored it: expiring in the next century.
+      await t.db.conn.query("UPDATE messages SET expires_at = $1 WHERE direction = 'in' AND id = $2", [new Date('2099-01-01T00:00:00Z'), env.id]);
+
+      t.clock.advance(2 * 60 * 60 * 1000);
+      await t.node.worker.tick();
+      const capped = (await t.node.store.getMessage('in', env.from, env.id))!.expires_at.getTime();
+      assert.ok(capped <= t.clock.now().getTime() + 31 * day, 'its expiry is brought forward to the bound');
+      assert.equal((await t.node.handle(env)).duplicate, true, 'it is still the record of its id');
+
+      t.clock.advance(33 * day);
+      await t.node.worker.tick();
+      assert.equal(await t.node.store.getMessage('in', env.from, env.id), null);
+      assert.equal(await count('deliveries WHERE message_id = $1', [env.id]), 0);
+      // The envelope cannot come back: its created_at is long past what the node accepts.
+      const replay = await t.node.receive(env);
+      assert.equal(replay.status, 'rejected');
+      assert.equal(replay.reason?.code, 'expired');
+      assert.equal(t.adapter.delivered.filter((d) => d.message.id === env.id).length, 1, 'delivered once, ever');
     });
 
     it('keeps messages for as long as the operator configures', async () => {

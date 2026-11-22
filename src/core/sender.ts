@@ -114,6 +114,11 @@ export class Sender {
       const parsed = parseTimestamp(draft.expires_at);
       if (!parsed) throw new OperationError('invalid_message', 'expires_at: must be an RFC 3339 timestamp');
       if (parsed.getTime() <= now.getTime()) throw new OperationError('invalid_message', 'expires_at is already in the past');
+      // The same bound this node applies to what it receives: a message is stored until it expires.
+      const maxLifetimeSeconds = this.core.config.limits.max_lifetime_seconds;
+      if (parsed.getTime() > createdAt.getTime() + maxLifetimeSeconds * 1000) {
+        throw new OperationError('invalid_message', `expires_at is more than ${Math.floor(maxLifetimeSeconds / 86400)} days ahead, which is longer than this node keeps a message`);
+      }
       expiresAt = parsed;
     }
 

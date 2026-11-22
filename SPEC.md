@@ -474,7 +474,7 @@ in the card. When no port is configured, this implementation listens on 7387.
 |---|---|---|
 | `202` | The message is stored. | The acceptance receipt. |
 | `200` | The same message was already stored. | The receipt it got the first time. |
-| `400` | The body is not a valid envelope, or its `created_at` is in the future. | Error body, `invalid_envelope`. |
+| `400` | The body is not a valid envelope, its `created_at` is in the future, or its `expires_at` is further ahead than the node accepts ([section 8](#8-what-a-receiving-node-does), step 7). | Error body, `invalid_envelope`. |
 | `401` | The signature does not verify. | Error body, `bad_signature`. |
 | `403` | The delegation is missing or not valid. | Error body, `delegation_invalid`. |
 | `403` | The recipient does not know the sender, and the intent is not one a stranger may use. | Error body, `not_trusted`. |
@@ -579,7 +579,11 @@ answer.
    answer as [section 9](#9-repeats-conflicts-and-replay) says, and stop.
 7. **Time.** The message has not expired, and `created_at` is not older than
    the node's maximum age (seven days unless the operator changed it).
-   Otherwise: `expired`.
+   Otherwise: `expired`. A node MAY also refuse a message whose `expires_at`
+   is further from its `created_at` than the node is willing to keep a
+   message (this implementation: 30 days), with `invalid_envelope`. It MUST
+   NOT set that limit below seven days, the lifetime of a message that names
+   no `expires_at`.
 8. **Status receipt?** If the message is one, record it
    ([section 10](#10-status-receipts)) and answer `202`.
 9. **Per recipient**, decide whether the sender may deliver directly
@@ -607,7 +611,10 @@ One exception. If the receipt says a recipient was turned away for a
 `retryable` reason (a rate limit) while another recipient took the message,
 a repeat is the sender asking again for that recipient. The node decides
 again for that recipient only. If it can take the message now, it adds the
-delivery and answers with the updated, re-signed receipt. Recipients that
+delivery and answers with the updated, re-signed receipt. It does so only
+while it could still accept the message as new: once the message has expired,
+or its `created_at` is older than the node's maximum age, the first answer
+stands. Recipients that
 already took the message are never delivered to twice.
 
 ### Replay

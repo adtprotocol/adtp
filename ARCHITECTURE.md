@@ -133,7 +133,9 @@ In the order [SPEC.md section 8](SPEC.md#8-what-a-receiving-node-does) gives:
    and re-signed, in one transaction. Recipients that already took the message
    are never touched.
 7. **Time.** `expires_at` in the past, or `created_at` older than
-   `limits.max_age_days`: `expired`.
+   `limits.max_age_days`: `expired`. `expires_at` more than
+   `limits.retention_days` after `created_at`: `invalid_envelope`, because the
+   message would have to be kept for longer than the node keeps messages.
 8. **Trust**, per local recipient. A sender is known if it is on the
    recipient's `trusted` list or has interacted with it before, and is then
    accepted. An unknown sender may only use `inform` or `request`
@@ -293,7 +295,9 @@ and `next_attempt_at <= now` are the queue, for both directions.
   windows and events, and purges messages that arrived more than
   `limits.retention_days` ago and have been expired for at least a day. A
   stored message is also the record that stops its id from being accepted
-  twice, so it is never purged while it could still be accepted.
+  twice, so it is never purged while it could still be accepted. A message
+  stored by an earlier build with an expiry beyond the bound in step 7 has its
+  stored expiry brought forward to that bound, so it is purged as well.
 
 ## Agents and the event feed
 

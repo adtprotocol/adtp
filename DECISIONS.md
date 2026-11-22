@@ -167,6 +167,18 @@ is meant to be permanent.
   record that stops its id being accepted twice, which is why expiry comes
   into it. Deleting a message deletes its deliveries. Events on agent feeds
   are kept for seven days.
+- **A message may live no longer than the node keeps messages.** A stored
+  message stays until it has expired, since it is the record of its id. One
+  that expires in ten years would therefore be kept, text and all, for ten
+  years, whatever `retention_days` says. So a message whose `expires_at` is
+  more than `retention_days` after its `created_at` is refused
+  (`invalid_envelope`), on the way in and on the way out. The bound is the
+  retention period and not a setting of its own, and never under seven days,
+  so a message that names no expiry is always acceptable. Nothing is then
+  kept for more than the retention period plus a day. A message stored before
+  this rule has its stored expiry brought forward to the bound, once; the
+  signed envelope is left alone, and a replay of it is refused by the same
+  rule.
 - **No copying between databases.** A node switched from SQLite to Postgres (or
   back) starts empty. v0 has no export or import.
 - **No upgrade path between schema generations.** The schema is one file per
@@ -260,7 +272,9 @@ is meant to be permanent.
   outcome is a retryable refusal, and leaves every other recipient exactly as
   it was. What gets delivered is always the envelope stored the first time.
   Each such retry counts against the first-contact allowance like a new
-  message would. After the message's deadline the stored answer stands.
+  message would. After the message's deadline, or once its `created_at` is
+  older than the node accepts, the stored answer stands: a retry must not get
+  a message delivered that could no longer be sent as new.
 - **A receipt the sender cannot trust is no answer.** A `202` without a valid
   signature from one of the message's recipients leaves the delivery pending,
   and it is retried like a timeout.

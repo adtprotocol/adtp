@@ -451,7 +451,7 @@ the container. It is commented throughout; the sections are:
 | `channels.email` | SMTP settings, the From address, the inbound-reply token, read receipts. |
 | `rate_limits` | Hourly limits for first-contact senders, per sender and per organization. |
 | `delivery` | Maximum attempts and backoff for retries. |
-| `limits` | `max_age_days`: how old a message's `created_at` may be (7). `retention_days`: how long stored messages are kept (30). |
+| `limits` | `max_age_days`: how old a message's `created_at` may be (7). `retention_days`: how long stored messages are kept (30), and so the longest a message may live: one that expires later than that after its `created_at` is refused. |
 | `delegation` | Default and maximum lifetime of the delegation tokens this node signs (24 hours, 7 days). |
 | `discovery` | Card cache time, and local-development overrides. |
 | `plugins` | Extra channel adapters to load. |
