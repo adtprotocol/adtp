@@ -330,9 +330,9 @@ ends badly on this side (`rejected`, `failed`, `expired`).
 
 **Two tokens.** The agent token can do what this section describes, plus read
 message status, threads and how an address resolves. It is held to the node's
-agent addresses: it cannot send as a person, read a person's feed, or have the
-node sign a delegation from a principal the agent is not configured to act
-for. The requests tray, delegations and the admin pages need the admin token.
+agent addresses: it cannot send as a person, read a person's feed or a person's
+messages and threads, or have the node sign a delegation from a principal the
+agent is not configured to act for. The requests tray, delegations and the admin pages need the admin token.
 One agent token serves every agent on the node; per-agent tokens would come in
 through the `TokenVerifier` seam.
 

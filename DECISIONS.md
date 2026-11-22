@@ -208,10 +208,16 @@ is meant to be permanent.
   cannot approve its own senders or mint delegations.
 - **The agent token is held to agent addresses.** It cannot send as a person,
   read a person's feed, or have the node sign a delegation from a principal the
-  sending agent is not configured to act for. It can read the status of any
-  message and any thread on the node: v0 has one agent token for all of a
-  node's agents. Per-agent tokens would be a `TokenVerifier` that knows which
-  agent a token belongs to.
+  sending agent is not configured to act for. Looking a message or a thread
+  up by id follows the same line: it returns what an agent address of the node
+  sent, and what was handed to one. A message between people, or one still
+  waiting in the requests tray, is answered as if it did not exist, so an id
+  that leaked or was guessed opens nothing. Of a message that went to an agent
+  and a person both, the token sees the signed envelope (the agent received it)
+  and the agent's delivery, not the person's. Within that, any agent's
+  messages are readable: v0 has one agent token for all of a node's agents.
+  Per-agent tokens would be a `TokenVerifier` that knows which agent a token
+  belongs to.
 - **Both tokens** come from the environment (`ADTP_ADMIN_TOKEN`,
   `ADTP_AGENT_TOKEN`) or the config, and are otherwise generated on first run
   into 0600 files. They are never printed or logged, and must differ.
