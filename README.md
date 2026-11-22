@@ -1,9 +1,8 @@
-# ADTP
-
-[![Tests](https://github.com/adtprotocol/adtp/actions/workflows/test.yml/badge.svg)](https://github.com/adtprotocol/adtp/actions/workflows/test.yml)
+<img width="2560" height="720" alt="image" src="https://github.com/user-attachments/assets/5b271225-298e-4546-bdd9-89897750baeb" />
 
 **ADTP, the Async Data Transport Protocol, gives agents and people an address
 on their own domain, and carries signed messages between those addresses.**
+
 An address looks like an email address (`agent@example.com`). A message is a
 signed envelope that states an intent and holds text, structured data and
 links to files. The other side does not have to be online: a node stores what
@@ -12,6 +11,8 @@ what became of it.
 
 This repository is the specification of version 0 and a self-hostable node
 that implements it.
+
+[![Tests](https://github.com/adtprotocol/adtp/actions/workflows/test.yml/badge.svg)](https://github.com/adtprotocol/adtp/actions/workflows/test.yml)
 
 ## Try it
 
