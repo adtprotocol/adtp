@@ -778,8 +778,8 @@ the node's agent addresses: it cannot send as a person or read a person's feed.
 | `POST /api/v0/messages` | Send from a hosted address. Body: `from`, `to` (address or list), `intent`, `text`, and optionally `data`, `thread`, `priority` (`low`, `normal`, `urgent`), `expires_at` (default: seven days from now), `requires_approval`, `on_behalf_of` (leave it out to use the agent's configured `acts_for`; `null` to send as the address itself), `delegation`, `id`, `in_reply_to` (marks that received message replied, if this one is addressed to its sender), `dry_run` (sign only; returns the envelope). |
 | `POST /api/v0/messages/{id}/read` | Body: `recipient`, and optionally `from` (the sender, in the rare case two senders used the same id). Marks a received message read and tells the sender. |
 | `GET /api/v0/events` | An address's feed. Query: `address`, `after` (a sequence number, or `latest`), `wait` (seconds to hold the request open), `limit`. |
-| `GET /api/v0/messages/{id}` | Delivery state per recipient and the signed envelope, for the sent and/or received copy. The agent token gets only copies an agent address sent or was handed, and `404` if there is none. |
-| `GET /api/v0/threads/{thread}` | Every message on a thread, oldest first. The agent token gets only the messages an agent address sent or was handed. |
+| `GET /api/v0/messages/{id}` | Delivery state per recipient and the signed envelope, for the sent and/or received copy. The agent token gets only copies an agent address sent or had delivered to it, and `404` if there is none. |
+| `GET /api/v0/threads/{thread}` | Every message on a thread, oldest first. The agent token gets only the messages an agent address sent or had delivered to it. |
 | `GET /api/v0/resolve` | Query: `address`. The card this node resolves for it, and how it was found. |
 | `GET /api/v0/directory` | Query: `domain`. The addresses that domain lists and what each is for, and how the directory was found. `502` if the domain publishes none. |
 

@@ -18,6 +18,7 @@ describe('reading stored messages back: admin token and agent token', () => {
   const alice = new TestKeys();
   const carol = new TestKeys();
   const dave = new TestKeys();
+  const erin = new TestKeys();
 
   const deliver = async (input: EnvelopeInput, signer: TestKeys): Promise<{ status: number; json: any }> => {
     const res = await fetch(`${url}${MESSAGES_PATH}`, { method: 'POST', headers: { 'content-type': ADTP_CONTENT_TYPE }, body: JSON.stringify(signedEnvelope(input, signer)) });
@@ -32,7 +33,9 @@ describe('reading stored messages back: admin token and agent token', () => {
     return { status: res.status, json: await res.json() };
   };
   const message = (token: string, id: string) => api(token, 'GET', `/api/v0/messages/${id}`);
-  const thread = async (token: string, id: string): Promise<any[]> => (await api(token, 'GET', `/api/v0/threads/${id}`)).json.messages;
+  /** The messages on a thread, without the status receipts the node itself exchanges about them. */
+  const thread = async (token: string, id: string): Promise<any[]> =>
+    (await api(token, 'GET', `/api/v0/threads/${id}`)).json.messages.filter((m: any) => !m.receipt_for);
   const summary = (messages: any[]) => messages.map((m) => `${m.direction} ${m.from} ${m.id}`);
 
   before(async () => {
@@ -46,6 +49,7 @@ describe('reading stored messages back: admin token and agent token', () => {
     t.resolver.add(alice.card('alice@a.test'));
     t.resolver.add(carol.card('carol@c.test'));
     t.resolver.add(dave.card('dave@d.test'));
+    t.resolver.add(erin.card('erin@e.test'));
     server = createApp({ node: t.node, adminToken: 'admin', agentToken: 'agent', log: silentLogger });
     const port = await freePort();
     await new Promise<void>((resolve) => server.listen(port, '127.0.0.1', resolve));
@@ -86,6 +90,7 @@ describe('reading stored messages back: admin token and agent token', () => {
     const fromHelper = await api('agent', 'POST', '/api/v0/messages', { from: 'helper@b.test', to: 'alice@a.test', intent: 'inform', text: 'helper on the shared thread', thread: 'thr_mixed' });
     assert.equal(fromBob.status, 201);
     assert.equal(fromHelper.status, 201);
+    await t.node.worker.drain();
 
     assert.equal((await thread('admin', 'thr_mixed')).length, 4);
     const seen = await thread('agent', 'thr_mixed');
@@ -109,6 +114,7 @@ describe('reading stored messages back: admin token and agent token', () => {
   it('tells two senders with the same id apart', async () => {
     assert.equal((await deliver({ from: 'alice@a.test', to: ['bob@b.test'], id: 'msg_shared_id', text: 'alice to bob' }, alice)).status, 202);
     assert.equal((await deliver({ from: 'carol@c.test', to: ['helper@b.test'], id: 'msg_shared_id', text: 'carol to helper' }, carol)).status, 202);
+    await t.node.worker.drain();
 
     const asAdmin = (await message('admin', 'msg_shared_id')).json.copies;
     assert.deepEqual(asAdmin.map((c: any) => c.from), ['alice@a.test', 'carol@c.test']);
@@ -128,9 +134,26 @@ describe('reading stored messages back: admin token and agent token', () => {
     assert.equal((await message('admin', 'msg_held_1')).status, 200);
 
     assert.equal((await api('admin', 'POST', '/api/v0/tray/approve', { id: 'msg_held_1', recipient: 'helper@b.test' })).status, 200);
+    await t.node.worker.drain();
     const released = await message('agent', 'msg_held_1');
     assert.equal(released.status, 200);
     assert.equal(released.json.copies[0].text, 'from a stranger');
     assert.equal((await thread('agent', 'thr_held')).length, 1);
+  });
+
+  it('does not show it a held message that expired without ever being approved', async () => {
+    const expiresAt = new Date(t.clock.now().getTime() + 60 * 60 * 1000).toISOString();
+    const held = await deliver({ from: 'erin@e.test', to: ['helper@b.test'], id: 'msg_held_2', thread: 'thr_held_2', intent: 'request', text: 'never approved', expires_at: expiresAt }, erin);
+    assert.equal(held.json.status, 'queued');
+
+    t.clock.advance(2 * 60 * 60 * 1000);
+    await t.node.worker.tick();
+    const asAdmin = await message('admin', 'msg_held_2');
+    assert.equal(asAdmin.json.copies[0].deliveries[0].state, 'expired', 'it left the tray by expiring, not by approval');
+
+    const asAgent = await message('agent', 'msg_held_2');
+    assert.equal(asAgent.status, 404);
+    assert.ok(!JSON.stringify(asAgent.json).includes('never approved'));
+    assert.deepEqual(await thread('agent', 'thr_held_2'), []);
   });
 });

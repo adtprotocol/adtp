@@ -194,8 +194,8 @@ export function createApp(opts: AppOptions): Server {
   /**
    * The stored copies a caller may read. The admin token reads everything. An
    * agent token reads what an agent address of this node sent, and what was
-   * handed to one: a copy waiting in the requests tray, or turned away, was
-   * not. Of a copy that also went to a person, it sees the agents' deliveries
+   * delivered to one: a copy waiting in the requests tray, turned away, or
+   * expired before anyone approved it, was not. Of a copy that also went to a person, it sees the agents' deliveries
    * only. A status receipt has no delivery of its own; it goes by whom it is
    * addressed to.
    */
@@ -205,7 +205,9 @@ export function createApp(opts: AppOptions): Server {
     return views.flatMap((m): MessageView[] => {
       if (m.direction === 'out') return isAgent(m.from_addr) ? [m] : [];
       const deliveries = m.deliveries.filter((d) => isAgent(d.recipient));
-      const handed = deliveries.some((d) => d.state !== 'held' && d.state !== 'rejected');
+      // Handed over means delivered, and nothing less. A copy that is held, was turned away, or
+      // expired or failed before it reached the agent never did, whatever state it ended in.
+      const handed = deliveries.some((d) => d.delivered_at !== null);
       if (handed || (m.receipt_for !== null && m.to_addrs.some(isAgent))) return [{ ...m, deliveries }];
       return [];
     });

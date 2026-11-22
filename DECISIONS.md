@@ -222,8 +222,9 @@ is meant to be permanent.
   read a person's feed, or have the node sign a delegation from a principal the
   sending agent is not configured to act for. Looking a message or a thread
   up by id follows the same line: it returns what an agent address of the node
-  sent, and what was handed to one. A message between people, or one still
-  waiting in the requests tray, is answered as if it did not exist, so an id
+  sent, and what was delivered to one. A message between people, or one that
+  never reached the agent (still in the requests tray, turned away, or expired
+  before anyone approved it), is answered as if it did not exist, so an id
   that leaked or was guessed opens nothing. Of a message that went to an agent
   and a person both, the token sees the signed envelope (the agent received it)
   and the agent's delivery, not the person's. Within that, any agent's
