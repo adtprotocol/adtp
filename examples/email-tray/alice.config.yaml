@@ -1,0 +1,43 @@
+# Demo node for alice.localhost. Local development settings: do not copy to production.
+domain: alice.localhost
+
+# Inside the demo's Docker network the nodes reach each other by service name.
+public_url: http://alice:7387
+
+addresses:
+  - local: alice
+    type: human
+    routes:
+      - match: { priority: urgent }
+        channel: email
+        to: alice+urgent@example.com
+      - default: true
+        channel: email
+        to: alice@example.com
+  - local: assistant
+    type: agent
+    name: Alice's assistant
+    routes:
+      - default: true
+        channel: email
+        to: alice-assistant@example.com
+
+channels:
+  email:
+    from: "ADTP <adtp@alice.localhost>"
+    smtp:
+      host: mailpit
+      port: 1025
+    inbound:
+      token: ${EMAIL_INBOUND_TOKEN}
+    reply_to: reply+{token}@alice.localhost
+
+delivery:
+  backoff_base_seconds: 2
+
+# No DNS in the demo: tell this node where bob.localhost's cards live, and
+# allow plain http and private addresses.
+discovery:
+  allow_insecure: true
+  overrides:
+    bob.localhost: "http://bob:7387/.well-known/adtp/{local}"

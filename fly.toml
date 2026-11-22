@@ -1,0 +1,43 @@
+# One ADTP node on Fly.io. deploy/README.md has the steps; deploy/fly/launch.sh runs them.
+#
+# The app name here is a placeholder: the script passes the real one with --app,
+# so the same file serves every node you start. What differs between nodes (the
+# domain, the address, the tokens) is set as secrets, not here.
+app = "adtp-node"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+  # A Fly volume is writable only by root, so the node runs as root in its machine.
+  [build.args]
+    RUN_AS = "root"
+
+# The port the node listens on, stated so that nothing else decides it. It matches internal_port below.
+[env]
+  PORT = "7387"
+
+# The signing key, the two API tokens and the SQLite database. One volume, one machine.
+[mounts]
+  source = "adtp_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 7387
+  force_https = true
+  # Keep the machine running: the node retries deliveries and sends receipts on
+  # its own clock, not only when a request comes in.
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    method = "GET"
+    path = "/healthz"
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "20s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

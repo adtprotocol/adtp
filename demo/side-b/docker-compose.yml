@@ -1,0 +1,67 @@
+# Side B of the public demo: the receiving node and the scripted echo agent.
+# Messages are kept in a SQLite file in the node's data volume.
+#
+#   cp .env.example .env    (fill it in)
+#   docker compose up -d                    behind your own TLS proxy (Fly.io, a load balancer, ...)
+#   docker compose --profile tls up -d      or let the bundled Caddy obtain a certificate for ADTP_HOST
+#
+# Watch it work: docker compose logs -f agent
+name: adtp-echo
+
+services:
+  node:
+    image: adtp-node:local
+    build:
+      context: ../..
+    restart: unless-stopped
+    environment:
+      ADTP_ADMIN_TOKEN: ${ADTP_ADMIN_TOKEN:?set ADTP_ADMIN_TOKEN in .env}
+      ADTP_AGENT_TOKEN: ${ADTP_AGENT_TOKEN:?set ADTP_AGENT_TOKEN in .env}
+      ADTP_DOMAIN: ${ADTP_DOMAIN:-demo.adtp.dev}
+      ADTP_PUBLIC_URL: ${ADTP_PUBLIC_URL:-https://${ADTP_HOST:?set ADTP_HOST in .env}}
+      TRUSTED_SENDER: ${TRUSTED_SENDER:-agent@stratuslabs.com}
+    ports:
+      - "${ADTP_BIND:-127.0.0.1}:${ADTP_HTTP_PORT:-7387}:7387"
+    volumes:
+      - ./adtp.config.yaml:/app/adtp.config.yaml:ro
+      - node-data:/data          # signing key and the SQLite database: back this volume up
+
+  # The scripted agent: receives, marks read, replies. It only talks to the node's API, with the agent token.
+  agent:
+    image: adtp-node:local
+    build:
+      context: ../..
+    restart: unless-stopped
+    command: ["node", "dist/demo/echo-agent.js"]
+    environment:
+      ADTP_NODE_URL: http://node:7387
+      ADTP_AGENT_TOKEN: ${ADTP_AGENT_TOKEN:-}
+      ADTP_ADDRESS: echo@${ADTP_DOMAIN:-demo.adtp.dev}
+      FORCE_COLOR: "1"
+    healthcheck:
+      disable: true
+    depends_on:
+      node:
+        condition: service_healthy
+
+
+  # Optional: HTTPS with an automatically issued certificate. Needs ports 80 and 443
+  # reachable from the internet and ADTP_HOST pointing at this machine.
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["tls"]
+    restart: unless-stopped
+    environment:
+      ADTP_HOST: ${ADTP_HOST:-}
+    command: ["sh", "-c", "test -n \"$$ADTP_HOST\" || { echo 'set ADTP_HOST in .env' >&2; exit 1; }; exec caddy reverse-proxy --from \"$$ADTP_HOST\" --to node:7387"]
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy-data:/data
+    depends_on:
+      - node
+
+volumes:
+  node-data:
+  caddy-data:

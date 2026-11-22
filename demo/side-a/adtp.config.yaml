@@ -1,0 +1,17 @@
+# Side A: the Stratus node.
+#   dylan@<domain>   the principal
+#   agent@<domain>   the Stratus agent, acting for dylan
+# Values come from .env (see .env.example).
+domain: ${ADTP_DOMAIN:-stratuslabs.com}
+public_url: ${ADTP_PUBLIC_URL}
+
+addresses:
+  - local: dylan
+    type: human
+  - local: agent
+    type: agent
+    name: Stratus agent
+    acts_for: dylan            # the node signs a delegation from dylan for each message the agent sends
+    routes:
+      - default: true
+        channel: agent         # replies reach the agent over the node's event feed

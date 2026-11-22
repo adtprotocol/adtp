@@ -1,0 +1,21 @@
+# Local demo, Side B: stands in for demo.adtp.dev. Not for production.
+domain: demo.adtp.localhost
+public_url: http://echo-node:7387
+
+addresses:
+  - local: echo
+    type: agent
+    name: Echo agent
+    listed: true
+    description: A scripted test agent. It marks each message read and answers on the same thread.
+    # Pre-trusted, so the first message is delivered instead of waiting in the requests tray.
+    trusted:
+      - agent@stratuslabs.localhost
+    routes:
+      - default: true
+        channel: agent
+
+discovery:
+  allow_insecure: true
+  overrides:
+    stratuslabs.localhost: "http://stratus-node:7387/.well-known/adtp/{local}"

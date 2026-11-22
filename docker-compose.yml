@@ -1,0 +1,40 @@
+# One command: `docker compose up` starts the ADTP node and a local mail
+# catcher. Messages are kept in a SQLite file in the node's data volume, so
+# there is no database service to run. Edit adtp.config.yaml to make the node
+# yours.
+#
+# To use Postgres instead:
+#   docker compose -f docker-compose.yml -f docker-compose.postgres.yml up
+name: adtp
+
+services:
+  node:
+    build: .
+    restart: unless-stopped
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      # Optional. Without these the node creates what it needs under /data on first run.
+      ADTP_ADMIN_TOKEN: ${ADTP_ADMIN_TOKEN:-}
+      ADTP_AGENT_TOKEN: ${ADTP_AGENT_TOKEN:-}
+      ADTP_PRIVATE_KEY: ${ADTP_PRIVATE_KEY:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      EMAIL_INBOUND_TOKEN: ${EMAIL_INBOUND_TOKEN:-}
+      # Optional: postgres://user:password@host/database to keep messages in Postgres instead of SQLite.
+      DATABASE_URL: ${DATABASE_URL:-}
+    ports:
+      - "${ADTP_HTTP_PORT:-7387}:7387"
+    volumes:
+      - ./adtp.config.yaml:/app/adtp.config.yaml:ro
+      - adtp-data:/data          # signing key, API tokens, and the SQLite database
+
+  # Local SMTP catcher so the default config works out of the box. For
+  # development and demos only: remove this service once you point
+  # channels.email.smtp at a real mail server. Web UI: http://localhost:8025.
+  mailpit:
+    image: axllent/mailpit:v1.34.0@sha256:23a2ef85bc50853ab3093645d1d64679afd8887e89da5e48a88940c172591a4e
+    restart: unless-stopped
+    ports:
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+
+volumes:
+  adtp-data:

@@ -1,0 +1,61 @@
+# Two ADTP nodes (alice.localhost, bob.localhost) and one mail catcher.
+# Run it with: bash examples/email-tray/run.sh
+name: adtp-email-tray
+
+x-node: &node
+  image: adtp-node:example
+  build:
+    context: ../..
+  restart: unless-stopped
+
+services:
+  alice:
+    <<: *node
+    environment:
+      ADTP_ADMIN_TOKEN: demo-admin-alice
+      EMAIL_INBOUND_TOKEN: demo-inbound-alice
+    ports:
+      - "127.0.0.1:7390:7387"
+    volumes:
+      - ./alice.config.yaml:/app/adtp.config.yaml:ro
+      - alice-data:/data
+
+  bob:
+    <<: *node
+    environment:
+      ADTP_ADMIN_TOKEN: demo-admin-bob
+      EMAIL_INBOUND_TOKEN: demo-inbound-bob
+    ports:
+      - "127.0.0.1:7391:7387"
+    volumes:
+      - ./bob.config.yaml:/app/adtp.config.yaml:ro
+      - bob-data:/data
+
+
+  mailpit:
+    image: axllent/mailpit:v1.34.0@sha256:23a2ef85bc50853ab3093645d1d64679afd8887e89da5e48a88940c172591a4e
+    ports:
+      - "127.0.0.1:8025:8025"
+
+  # The scripted walkthrough. Started by run.sh, not by `up`.
+  walkthrough:
+    <<: *node
+    profiles: ["walkthrough"]
+    restart: "no"
+    command: ["node", "dist/examples/email-tray/walkthrough.js"]
+    environment:
+      ALICE_URL: http://alice:7387
+      BOB_URL: http://bob:7387
+      MAILPIT_URL: http://mailpit:8025
+      ALICE_TOKEN: demo-admin-alice
+      BOB_TOKEN: demo-admin-bob
+      BOB_INBOUND_TOKEN: demo-inbound-bob
+    depends_on:
+      alice:
+        condition: service_healthy
+      bob:
+        condition: service_healthy
+
+volumes:
+  alice-data:
+  bob-data:

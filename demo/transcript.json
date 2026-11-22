@@ -1,0 +1,323 @@
+{
+  "demo": "adtp-v0",
+  "mode": "send",
+  "from": "agent@stratuslabs.localhost",
+  "to": "echo@demo.adtp.localhost",
+  "result": {
+    "ok": true,
+    "summary": "accepted, delivered, read, and a reply on the same thread in 0.11s",
+    "elapsed_ms": 106,
+    "statuses": {
+      "accepted": "2026-11-21T05:09:51.415Z",
+      "delivered": "2026-11-21T05:09:51.415Z",
+      "read": "2026-11-21T05:09:51.426Z",
+      "replied": "2026-11-21T05:09:51.439Z"
+    }
+  },
+  "discovery": {
+    "address": "echo@demo.adtp.localhost",
+    "type": "agent",
+    "endpoint": "http://echo-node:7387/adtp/v0/messages",
+    "keys": [
+      {
+        "kid": "ed25519-dc65fc07efdb9693",
+        "alg": "Ed25519",
+        "public_key": "610weugl-AUg8TukKfhlngKao6dLyZu-CVunwlDUQL8"
+      }
+    ],
+    "accepts": [
+      "inform",
+      "request",
+      "propose",
+      "accept",
+      "decline",
+      "commit",
+      "status",
+      "cancel",
+      "approval.request",
+      "approval.response"
+    ],
+    "max_bytes": 262144,
+    "resolved": {
+      "method": "override",
+      "card_url": "http://echo-node:7387/.well-known/adtp/echo"
+    }
+  },
+  "envelope": {
+    "adtp": "0",
+    "id": "msg_01M7Y85HMS41SDMNZBTACM8SQD",
+    "thread": "thr_01M7Y85HMSTAXEJGMRN7J8F2KZ",
+    "from": "agent@stratuslabs.localhost",
+    "on_behalf_of": "dylan@stratuslabs.localhost",
+    "to": [
+      "echo@demo.adtp.localhost"
+    ],
+    "intent": "request",
+    "priority": "normal",
+    "created_at": "2026-11-21T05:09:51Z",
+    "expires_at": "2026-11-21T06:09:51Z",
+    "requires_approval": false,
+    "content": {
+      "parts": [
+        {
+          "type": "text",
+          "text": "Hello from Stratus Labs. This is the first ADTP message. Please confirm receipt."
+        },
+        {
+          "type": "data",
+          "data": {
+            "type": "demo.ping",
+            "sent_at": "2026-11-21T05:09:51.373Z"
+          }
+        }
+      ]
+    },
+    "delegation": "eyJhbGciOiJFZERTQSIsInR5cCI6ImFkdHAtZGVsZWdhdGlvbitqd3QiLCJraWQiOiJlZDI1NTE5LWM4OTdiZmFjOTExY2ExZGEifQ.eyJpc3MiOiJkeWxhbkBzdHJhdHVzbGFicy5sb2NhbGhvc3QiLCJzdWIiOiJhZ2VudEBzdHJhdHVzbGFicy5sb2NhbGhvc3QiLCJhdWQiOiJhZHRwIiwic2NvcGUiOlsicmVxdWVzdCJdLCJqdGkiOiJkbGdfWkxQbWZSVWc3bFMxZ1lMVCIsImlhdCI6MTc5NTIzNzc5MSwiZXhwIjoxNzk1MjQxMzkyfQ.KSDcAgOlFgJv1o6gk8cg0KDlg3yA1kPxq3YV1yW7a8vHQhwyzFg9xFzvr3j1CQsRNLayDhZOVTGE5P8StxQnDg",
+    "signature": {
+      "alg": "Ed25519",
+      "kid": "ed25519-c897bfac911ca1da",
+      "value": "Ao_eIijW3ajOclVRbYTLnffps-Yt6sjYpEFyU4NH1A3XgKvvPG2xD9U758o7XD8A_bB0ga9NRhjQbAkmnXoiAA"
+    }
+  },
+  "reply": {
+    "id": "msg_01M7Y85HPFYBNKC06HXEMGFC6D",
+    "thread": "thr_01M7Y85HMSTAXEJGMRN7J8F2KZ",
+    "from": "echo@demo.adtp.localhost",
+    "on_behalf_of": null,
+    "to": [
+      "agent@stratuslabs.localhost"
+    ],
+    "intent": "inform",
+    "priority": "normal",
+    "created_at": "2026-11-21T05:09:51Z",
+    "expires_at": "2026-11-21T06:09:51Z",
+    "requires_approval": false,
+    "sender_type": "agent",
+    "text": "Received your request, signature verified for agent@stratuslabs.localhost acting for dylan@stratuslabs.localhost.",
+    "parts": [
+      {
+        "type": "text",
+        "text": "Received your request, signature verified for agent@stratuslabs.localhost acting for dylan@stratuslabs.localhost."
+      }
+    ],
+    "verified": {
+      "signature": "ed25519-dc65fc07efdb9693"
+    },
+    "at": "2026-11-21T05:09:51.452Z"
+  },
+  "timeline": [
+    {
+      "at": "2026-11-21T05:09:51.367Z",
+      "elapsed_ms": 16,
+      "actor": "stratus",
+      "step": "discover",
+      "text": "local mode: discovery override for demo.adtp.localhost (no DNS lookup)",
+      "detail": {
+        "method": "override",
+        "card_url": "http://echo-node:7387/.well-known/adtp/echo"
+      }
+    },
+    {
+      "at": "2026-11-21T05:09:51.367Z",
+      "elapsed_ms": 16,
+      "actor": "stratus",
+      "step": "card",
+      "text": "http://echo-node:7387/.well-known/adtp/echo  →  endpoint http://echo-node:7387/adtp/v0/messages, key ed25519-dc65fc07efdb9693",
+      "detail": {
+        "address": "echo@demo.adtp.localhost",
+        "type": "agent",
+        "endpoint": "http://echo-node:7387/adtp/v0/messages",
+        "keys": [
+          {
+            "kid": "ed25519-dc65fc07efdb9693",
+            "alg": "Ed25519",
+            "public_key": "610weugl-AUg8TukKfhlngKao6dLyZu-CVunwlDUQL8"
+          }
+        ],
+        "accepts": [
+          "inform",
+          "request",
+          "propose",
+          "accept",
+          "decline",
+          "commit",
+          "status",
+          "cancel",
+          "approval.request",
+          "approval.response"
+        ],
+        "max_bytes": 262144
+      }
+    },
+    {
+      "at": "2026-11-21T05:09:51.390Z",
+      "elapsed_ms": 39,
+      "actor": "stratus",
+      "step": "send",
+      "text": "adtp_send → msg_01M7Y85HMS41SDMNZBTACM8SQD on thr_01M7Y85HMSTAXEJGMRN7J8F2KZ",
+      "detail": {
+        "id": "msg_01M7Y85HMS41SDMNZBTACM8SQD",
+        "thread": "thr_01M7Y85HMSTAXEJGMRN7J8F2KZ"
+      }
+    },
+    {
+      "at": "2026-11-21T05:09:51.395Z",
+      "elapsed_ms": 44,
+      "actor": "stratus",
+      "step": "envelope",
+      "text": "signed by the node for agent@stratuslabs.localhost",
+      "detail": {
+        "adtp": "0",
+        "id": "msg_01M7Y85HMS41SDMNZBTACM8SQD",
+        "thread": "thr_01M7Y85HMSTAXEJGMRN7J8F2KZ",
+        "from": "agent@stratuslabs.localhost",
+        "on_behalf_of": "dylan@stratuslabs.localhost",
+        "to": [
+          "echo@demo.adtp.localhost"
+        ],
+        "intent": "request",
+        "priority": "normal",
+        "created_at": "2026-11-21T05:09:51Z",
+        "expires_at": "2026-11-21T06:09:51Z",
+        "requires_approval": false,
+        "content": {
+          "parts": [
+            {
+              "type": "text",
+              "text": "Hello from Stratus Labs. This is the first ADTP message. Please confirm receipt."
+            },
+            {
+              "type": "data",
+              "data": {
+                "type": "demo.ping",
+                "sent_at": "2026-11-21T05:09:51.373Z"
+              }
+            }
+          ]
+        },
+        "delegation": "eyJhbGciOiJFZERT…8StxQnDg",
+        "signature": {
+          "alg": "Ed25519",
+          "kid": "ed25519-c897bfac911ca1da",
+          "value": "Ao_eIijW3ajOclVR…kmnXoiAA"
+        }
+      }
+    },
+    {
+      "at": "2026-11-21T05:09:51.415Z",
+      "elapsed_ms": 67,
+      "actor": "side-b",
+      "step": "accepted",
+      "text": "signature verified (key ed25519-c897bfac911ca1da); delegation verified: agent@stratuslabs.localhost acts for dylan@stratuslabs.localhost; signed receipt from echo@demo.adtp.localhost checked",
+      "detail": {
+        "seq": 1,
+        "type": "status",
+        "address": "agent@stratuslabs.localhost",
+        "message_id": "msg_01M7Y85HMS41SDMNZBTACM8SQD",
+        "thread": "thr_01M7Y85HMSTAXEJGMRN7J8F2KZ",
+        "recipient": "echo@demo.adtp.localhost",
+        "status": "accepted",
+        "at": "2026-11-21T05:09:51.415Z",
+        "verified": {
+          "signature": "ed25519-c897bfac911ca1da",
+          "delegation": "dylan@stratuslabs.localhost"
+        },
+        "receipt": {
+          "by": "echo@demo.adtp.localhost",
+          "kid": "ed25519-dc65fc07efdb9693"
+        }
+      }
+    },
+    {
+      "at": "2026-11-21T05:09:51.415Z",
+      "elapsed_ms": 79,
+      "actor": "side-b",
+      "step": "delivered",
+      "text": "handed to echo@demo.adtp.localhost",
+      "detail": {
+        "seq": 2,
+        "type": "status",
+        "address": "agent@stratuslabs.localhost",
+        "message_id": "msg_01M7Y85HMS41SDMNZBTACM8SQD",
+        "thread": "thr_01M7Y85HMSTAXEJGMRN7J8F2KZ",
+        "recipient": "echo@demo.adtp.localhost",
+        "status": "delivered",
+        "at": "2026-11-21T05:09:51.415Z"
+      }
+    },
+    {
+      "at": "2026-11-21T05:09:51.426Z",
+      "elapsed_ms": 85,
+      "actor": "side-b",
+      "step": "read",
+      "text": "echo@demo.adtp.localhost marked it read",
+      "detail": {
+        "seq": 3,
+        "type": "status",
+        "address": "agent@stratuslabs.localhost",
+        "message_id": "msg_01M7Y85HMS41SDMNZBTACM8SQD",
+        "thread": "thr_01M7Y85HMSTAXEJGMRN7J8F2KZ",
+        "recipient": "echo@demo.adtp.localhost",
+        "status": "read",
+        "at": "2026-11-21T05:09:51.426Z"
+      }
+    },
+    {
+      "at": "2026-11-21T05:09:51.439Z",
+      "elapsed_ms": 97,
+      "actor": "side-b",
+      "step": "replied",
+      "text": "echo@demo.adtp.localhost answered",
+      "detail": {
+        "seq": 4,
+        "type": "status",
+        "address": "agent@stratuslabs.localhost",
+        "message_id": "msg_01M7Y85HMS41SDMNZBTACM8SQD",
+        "thread": "thr_01M7Y85HMSTAXEJGMRN7J8F2KZ",
+        "recipient": "echo@demo.adtp.localhost",
+        "status": "replied",
+        "at": "2026-11-21T05:09:51.439Z"
+      }
+    },
+    {
+      "at": "2026-11-21T05:09:51.452Z",
+      "elapsed_ms": 105,
+      "actor": "side-b",
+      "step": "reply",
+      "text": "inform from echo@demo.adtp.localhost on thr_01M7Y85HMSTAXEJGMRN7J8F2KZ",
+      "detail": {
+        "id": "msg_01M7Y85HPFYBNKC06HXEMGFC6D",
+        "thread": "thr_01M7Y85HMSTAXEJGMRN7J8F2KZ",
+        "from": "echo@demo.adtp.localhost",
+        "on_behalf_of": null,
+        "to": [
+          "agent@stratuslabs.localhost"
+        ],
+        "intent": "inform",
+        "priority": "normal",
+        "created_at": "2026-11-21T05:09:51Z",
+        "expires_at": "2026-11-21T06:09:51Z",
+        "requires_approval": false,
+        "sender_type": "agent",
+        "text": "Received your request, signature verified for agent@stratuslabs.localhost acting for dylan@stratuslabs.localhost.",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Received your request, signature verified for agent@stratuslabs.localhost acting for dylan@stratuslabs.localhost."
+          }
+        ],
+        "verified": {
+          "signature": "ed25519-dc65fc07efdb9693"
+        },
+        "at": "2026-11-21T05:09:51.452Z"
+      }
+    },
+    {
+      "at": "2026-11-21T05:09:51.457Z",
+      "elapsed_ms": 106,
+      "actor": "stratus",
+      "step": "verify",
+      "text": "reply signature verified (key ed25519-dc65fc07efdb9693)"
+    }
+  ]
+}

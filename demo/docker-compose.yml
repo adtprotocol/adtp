@@ -1,0 +1,78 @@
+# Local two-node mode for the demo: both sides on one machine, no DNS, no TLS.
+#   Side A  agent@stratuslabs.localhost  (stratus-node)
+#   Side B  echo@demo.adtp.localhost     (echo-node + echo-agent)
+# Each node keeps its messages in a SQLite file in its own data volume.
+# Run it with: bash demo/run.sh
+name: adtp-demo
+
+x-image: &image
+  image: adtp-node:demo
+  build:
+    context: ..
+
+
+services:
+  stratus-node:
+    <<: *image
+    environment:
+      ADTP_ADMIN_TOKEN: demo-stratus-admin
+      ADTP_AGENT_TOKEN: demo-stratus-agent
+    ports:
+      - "127.0.0.1:7388:7387"       # 7387 on the host is left free for a node of your own
+    volumes:
+      - ./local/stratus.config.yaml:/app/adtp.config.yaml:ro
+      - stratus-data:/data
+
+  echo-node:
+    <<: *image
+    environment:
+      ADTP_ADMIN_TOKEN: demo-echo-admin
+      ADTP_AGENT_TOKEN: demo-echo-agent
+    ports:
+      - "127.0.0.1:7389:7387"
+    volumes:
+      - ./local/echo.config.yaml:/app/adtp.config.yaml:ro
+      - echo-data:/data
+
+  # Side B's scripted agent. It talks only to echo-node's API, with the agent token: it has
+  # no access to the node's keys or to its administration.
+  echo-agent:
+    <<: *image
+    command: ["node", "dist/demo/echo-agent.js"]
+    environment:
+      ADTP_NODE_URL: http://echo-node:7387
+      ADTP_AGENT_TOKEN: demo-echo-agent
+      ADTP_ADDRESS: echo@demo.adtp.localhost
+      FORCE_COLOR: "1"
+    healthcheck:
+      disable: true
+    depends_on:
+      echo-node:
+        condition: service_healthy
+
+  # Plays the Stratus agent's part and prints the transcript. Started by demo/run.sh.
+  runner:
+    <<: *image
+    profiles: ["run"]
+    command: ["node", "dist/demo/run.js"]
+    environment:
+      STRATUS_NODE_URL: http://stratus-node:7387
+      STRATUS_TOKEN: demo-stratus-agent
+      FROM_ADDRESS: agent@stratuslabs.localhost
+      TO_ADDRESS: echo@demo.adtp.localhost
+      OUT_DIR: /out
+      FORCE_COLOR: ${FORCE_COLOR:-}       # colour is on when run from a terminal; set this to force it
+      MAX_SECONDS: ${MAX_SECONDS:-}
+    volumes:
+      - ./:/out
+    healthcheck:
+      disable: true
+    depends_on:
+      stratus-node:
+        condition: service_healthy
+      echo-agent:
+        condition: service_started
+
+volumes:
+  stratus-data:
+  echo-data:

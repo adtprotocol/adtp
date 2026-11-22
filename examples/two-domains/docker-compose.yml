@@ -1,0 +1,52 @@
+# One ADTP node for one domain, with HTTPS. Run it on each of the two servers.
+# Messages are kept in a SQLite file in the node's data volume.
+#
+#   cp first.env.example .env     (or second.env.example; then add the two tokens)
+#   docker compose --profile tls up -d --build    Caddy obtains a certificate for ADTP_HOST
+#   docker compose up -d --build                  if you already terminate TLS elsewhere
+#
+# The steps, the DNS records and the test itself are in README.md next to this file.
+name: adtp-node
+
+services:
+  node:
+    image: adtp-node:local
+    build:
+      context: ../..
+    restart: unless-stopped
+    environment:
+      ADTP_ADMIN_TOKEN: ${ADTP_ADMIN_TOKEN:?set ADTP_ADMIN_TOKEN in .env}
+      ADTP_AGENT_TOKEN: ${ADTP_AGENT_TOKEN:?set ADTP_AGENT_TOKEN in .env}
+      ADTP_DOMAIN: ${ADTP_DOMAIN:?set ADTP_DOMAIN in .env}
+      ADTP_PUBLIC_URL: ${ADTP_PUBLIC_URL:-https://${ADTP_HOST:?set ADTP_HOST in .env}}
+      ADTP_LOCAL: ${ADTP_LOCAL:?set ADTP_LOCAL in .env}
+      ADTP_TYPE: ${ADTP_TYPE:-human}
+      ADTP_LISTED: ${ADTP_LISTED:-false}
+      ADTP_DESCRIPTION: ${ADTP_DESCRIPTION:-}
+    ports:
+      - "${ADTP_BIND:-127.0.0.1}:${ADTP_HTTP_PORT:-7387}:7387"
+    # No config file is mounted: the image starts from deploy/env.config.yaml,
+    # which takes every value from the variables above.
+    volumes:
+      - node-data:/data          # signing key and the SQLite database: back this volume up
+
+  # HTTPS with an automatically issued certificate. Needs ports 80 and 443
+  # reachable from the internet and ADTP_HOST pointing at this machine.
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["tls"]
+    restart: unless-stopped
+    environment:
+      ADTP_HOST: ${ADTP_HOST:-}
+    command: ["sh", "-c", "test -n \"$$ADTP_HOST\" || { echo 'set ADTP_HOST in .env' >&2; exit 1; }; exec caddy reverse-proxy --from \"$$ADTP_HOST\" --to node:7387"]
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy-data:/data
+    depends_on:
+      - node
+
+volumes:
+  node-data:
+  caddy-data:

@@ -1,0 +1,39 @@
+# One ADTP node on Render, from the "Deploy to Render" button or a new Blueprint.
+# deploy/README.md has the steps.
+#
+# Render asks for the three values marked "sync: false" when the Blueprint is
+# created, generates the two API tokens, and keeps the node's signing key and
+# messages on the disk.
+services:
+  - type: web
+    name: adtp-node
+    runtime: docker
+    plan: starter            # the smallest plan that can have a disk
+    numInstances: 1          # one node, one disk
+    autoDeploy: false        # update when you choose to, not on every change to the repository
+    healthCheckPath: /healthz
+    disk:
+      name: adtp-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      # The domain in your address: example.com
+      - key: ADTP_DOMAIN
+        sync: false
+      # The part of your address before the @: you
+      - key: ADTP_LOCAL
+        sync: false
+      # Where other nodes reach this node: https://adtp.example.com
+      # (a hostname on your domain; you add it to this service as a custom domain afterwards)
+      - key: ADTP_PUBLIC_URL
+        sync: false
+      - key: ADTP_TYPE
+        value: human
+      # The admin token signs you in at <ADTP_PUBLIC_URL>/admin. Find it under Environment.
+      - key: ADTP_ADMIN_TOKEN
+        generateValue: true
+      - key: ADTP_AGENT_TOKEN
+        generateValue: true
+      # Render passes this to the image build: the node runs as root so that it can write to the disk.
+      - key: RUN_AS
+        value: root

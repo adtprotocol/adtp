@@ -1,0 +1,67 @@
+# Side A of the public demo: the Stratus node. Messages are kept in a SQLite file in its data volume.
+#
+#   cp .env.example .env    (fill it in)
+#   docker compose up -d                    behind your own TLS proxy (Fly.io, a load balancer, ...)
+#   docker compose --profile tls up -d      or let the bundled Caddy obtain a certificate for ADTP_HOST
+#
+# Then, from the repository root: bash demo/run.sh --public
+name: adtp-stratus
+
+services:
+  node:
+    image: adtp-node:local
+    build:
+      context: ../..
+    restart: unless-stopped
+    environment:
+      ADTP_ADMIN_TOKEN: ${ADTP_ADMIN_TOKEN:?set ADTP_ADMIN_TOKEN in .env}
+      ADTP_AGENT_TOKEN: ${ADTP_AGENT_TOKEN:?set ADTP_AGENT_TOKEN in .env}
+      ADTP_DOMAIN: ${ADTP_DOMAIN:-stratuslabs.com}
+      ADTP_PUBLIC_URL: ${ADTP_PUBLIC_URL:-https://${ADTP_HOST:?set ADTP_HOST in .env}}
+    ports:
+      - "${ADTP_BIND:-127.0.0.1}:${ADTP_HTTP_PORT:-7387}:7387"
+    volumes:
+      - ./adtp.config.yaml:/app/adtp.config.yaml:ro
+      - node-data:/data          # signing key and the SQLite database: back this volume up
+
+
+  # Optional: HTTPS with an automatically issued certificate. Needs ports 80 and 443
+  # reachable from the internet and ADTP_HOST pointing at this machine.
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["tls"]
+    restart: unless-stopped
+    environment:
+      ADTP_HOST: ${ADTP_HOST:-}
+    command: ["sh", "-c", "test -n \"$$ADTP_HOST\" || { echo 'set ADTP_HOST in .env' >&2; exit 1; }; exec caddy reverse-proxy --from \"$$ADTP_HOST\" --to node:7387"]
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy-data:/data
+    depends_on:
+      - node
+
+  # Sends the demo message and prints the transcript. Started by demo/run.sh --public.
+  runner:
+    image: adtp-node:local
+    build:
+      context: ../..
+    profiles: ["run"]
+    command: ["node", "dist/demo/run.js"]
+    environment:
+      STRATUS_NODE_URL: http://node:7387
+      STRATUS_TOKEN: ${ADTP_AGENT_TOKEN:-}
+      FROM_ADDRESS: agent@${ADTP_DOMAIN:-stratuslabs.com}
+      TO_ADDRESS: ${DEMO_TO:-echo@demo.adtp.dev}
+      OUT_DIR: /out
+      FORCE_COLOR: ${FORCE_COLOR:-}
+      MAX_SECONDS: ${MAX_SECONDS:-}
+    volumes:
+      - ../:/out
+    healthcheck:
+      disable: true
+
+volumes:
+  node-data:
+  caddy-data:

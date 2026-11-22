@@ -1,0 +1,20 @@
+# Local demo, Side A: stands in for stratuslabs.com. Not for production.
+domain: stratuslabs.localhost
+public_url: http://stratus-node:7387       # how the other container reaches this node
+
+addresses:
+  - local: dylan
+    type: human
+  - local: agent
+    type: agent
+    name: Stratus agent
+    acts_for: dylan                        # the node signs a delegation from dylan for each message
+    routes:
+      - default: true
+        channel: agent                     # replies are handed to the agent over the event feed
+
+# No DNS in local mode: say where the other side's cards live, and allow plain http.
+discovery:
+  allow_insecure: true
+  overrides:
+    demo.adtp.localhost: "http://echo-node:7387/.well-known/adtp/{local}"

@@ -1,0 +1,157 @@
+# ADTP node configuration.
+#
+# Any string may reference an environment variable as ${NAME} or
+# ${NAME:-default}; use that for secrets instead of writing them here.
+
+# The domain in your addresses: this node hosts <local>@<domain>.
+domain: localhost
+
+# The base URL other nodes use to reach this node (and mail clients use to
+# load read-receipt images). In production this is a public https URL, for
+# example https://adtp.example.com.
+public_url: http://localhost:7387
+
+# 7387 is the default. In Docker keep it (the image's health check uses it) and
+# change the published port in docker-compose.yml instead. In production, put
+# the node behind HTTPS on 443.
+listen:
+  host: 0.0.0.0
+  port: 7387
+
+# Where messages are kept. Leave this out for the default: a SQLite file,
+# adtp.db, in the data directory. Nothing to install or run.
+# To use Postgres instead, set this (or the DATABASE_URL environment variable):
+# database_url: postgres://user:password@host:5432/adtp
+
+# Where the node keeps its files: the signing keyring, the two API tokens and the SQLite database.
+# Defaults to $ADTP_DATA_DIR (the Docker image sets /data, a volume) or ./data.
+# data_dir: /data
+
+# Signing keys. An Ed25519 keypair is generated in <data_dir>/keys/keyring.json
+# on first run. Alternatively set ADTP_PRIVATE_KEY (base64url 32-byte seed).
+keys:
+  # How long a rotated-out key keeps verifying (`adtp keys rotate`).
+  rotation_grace_days: 30
+
+# Two tokens guard the local API (/api/v0):
+#   the admin token opens everything, including the web UI (/admin), the
+#     requests tray and delegations;
+#   the agent token is for agents: it can send, mark read, follow events and
+#     look things up, for this node's agent addresses only.
+# Set ADTP_ADMIN_TOKEN and ADTP_AGENT_TOKEN, or let the node generate them into
+# <data_dir>/admin-token and <data_dir>/agent-token on first run.
+
+# The people and agents this node receives messages for.
+addresses:
+  - local: me
+    type: human
+    name: Me
+    # Routes are private: they are never published in cards.
+    # First matching route wins; `default: true` catches everything else.
+    # A route can match on priority, intent, from_org (the sender's domain)
+    # and sender_type (human | agent); values may be a single value or a list.
+    routes:
+      - match: { priority: urgent }           # priorities are low, normal and urgent
+        channel: email
+        to: me+urgent@example.com
+      - match: { sender_type: agent, intent: [approval.request] }
+        channel: email
+        to: me+approvals@example.com
+      - default: true
+        channel: email
+        to: me@example.com
+
+  - local: assistant
+    type: agent
+    name: My assistant
+    description: Handles scheduling and follow-ups for me.
+    # Publish this address in the domain's directory (/.well-known/adtp), where
+    # anyone can find it along with the description above. Off unless set. An
+    # unlisted address still works for whoever knows it, and a listed one still
+    # sends strangers through the requests tray.
+    # listed: true
+    #
+    # Take first messages from anyone without holding them for approval
+    # (strangers are still limited to inform and request, and by rate_limits):
+    # first_contact: open
+    #
+    # Answer every message with a fixed text, once per thread:
+    # auto_reply: Thanks, your message arrived. Someone will read it soon.
+    # The principal this agent acts for. Published in its card; messages it sends
+    # carry on_behalf_of plus a delegation the node signs with the principal's key.
+    # acts_for: me
+    #
+    # Senders trusted from the start: exact addresses, or whole domains as *@domain.
+    # Their first message skips the requests tray.
+    # trusted:
+    #   - bot@partner.example
+    #   - "*@mycompany.example"
+    routes:
+      - default: true
+        channel: email
+        to: assistant-inbox@example.com
+      # Or hand messages to the agent itself. It reads them from the node's
+      # event feed (GET /api/v0/events) and needs no `to`:
+      # - default: true
+      #   channel: agent
+      #
+      # For a person without email: keep messages on the node. They are read
+      # and answered under Inbox at /admin. Needs no `to` either:
+      # - default: true
+      #   channel: inbox
+
+channels:
+  email:
+    from: "ADTP <adtp@localhost>"
+    smtp:
+      host: mailpit          # the bundled mail catcher; replace with your SMTP server
+      port: 1025
+      secure: false          # true for implicit TLS (port 465)
+      user: ""
+      pass: ${SMTP_PASSWORD:-}
+    # Replies come in through POST /hooks/email, authenticated with this token.
+    # Leave it empty to turn reply ingestion off.
+    inbound:
+      token: ${EMAIL_INBOUND_TOKEN:-}
+    # Optional Reply-To with the per-message token, if your inbound mail
+    # supports plus-addressing: reply+{token}@in.example.com
+    # reply_to: reply+{token}@in.example.com
+    read_receipts: true
+
+# Senders an address has never interacted with may only send `inform` or
+# `request`, land in the requests tray, and are limited to:
+rate_limits:
+  unknown_sender:
+    per_sender_per_hour: 5
+    per_org_per_hour: 20
+
+# Retries for both directions: sending to other nodes and delivering to channels.
+delivery:
+  max_attempts: 8
+  backoff_base_seconds: 5      # 5s, 10s, 20s, ... with jitter
+  backoff_max_seconds: 3600
+
+limits:
+  # A message created (signed) longer ago than this is refused, whatever its
+  # expires_at says. This bounds how long a captured message could be replayed.
+  max_age_days: 7
+  # Stored messages are deleted this long after they arrived, once they have
+  # also been expired for a day. Until then they are what stops a repeat of
+  # the same message from being accepted twice.
+  retention_days: 30
+
+# Delegation tokens this node signs with `adtp delegate` or POST /api/v0/delegations.
+delegation:
+  default_ttl_hours: 24        # when the caller does not ask for a lifetime
+  max_ttl_hours: 168           # the longest lifetime this node will sign
+
+discovery:
+  cache_ttl_seconds: 300
+  # Local development only: allow http:// card URLs and private addresses.
+  allow_insecure: false
+  # Skip DNS for specific domains (local development):
+  # overrides:
+  #   bob.localhost: "http://bob:7387/.well-known/adtp/{local}"
+
+# Extra channel adapters: modules that export register(registry).
+plugins: []

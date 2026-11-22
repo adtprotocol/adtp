@@ -1,0 +1,19 @@
+# Side B: the demo receiver.
+#   echo@<domain>   a scripted agent that confirms receipt
+# Values come from .env (see .env.example).
+domain: ${ADTP_DOMAIN:-demo.adtp.dev}
+public_url: ${ADTP_PUBLIC_URL}
+
+addresses:
+  - local: echo
+    type: agent
+    name: Echo agent
+    listed: true
+    description: A scripted test agent. It marks each message read and answers on the same thread.
+    # Pre-trusted for the demo, so the first message is delivered straight away
+    # instead of waiting in the requests tray. Anyone else still lands there.
+    trusted:
+      - ${TRUSTED_SENDER:-agent@stratuslabs.com}
+    routes:
+      - default: true
+        channel: agent
