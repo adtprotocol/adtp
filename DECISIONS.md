@@ -381,7 +381,19 @@ is meant to be permanent.
 - **The messages endpoint is open by design.** Anyone can post; nothing is
   stored until the signature verifies. There is no per-IP throttling in v0, so
   put the node behind a reverse proxy that rate-limits if it faces the open
-  internet.
+  internet. The README gives the limits to apply.
+- **Discovery is bounded, because strangers cause it.** The sender's card has
+  to be fetched before the signature can be checked, and the first-contact
+  limits count verified senders, so they cannot come first: counting a sender
+  nobody has verified would let anyone use up someone else's allowance. What
+  is limited instead is the work. Lookups for the same address share one fetch.
+  At most 16 lookups are in progress and 64 wait; one more is answered `503`
+  (`sender_unresolvable`, retryable) and is not remembered as a failure of the
+  address. Each cache holds at most 5000 entries, drops the oldest when full,
+  and clears out expired entries once a minute. The numbers are constants, not
+  settings, until someone needs to change them. Sending shares the same
+  budget, so a flood of unknown senders can delay this node's own lookups;
+  they are retried like any failed attempt.
 - **The local API shares the node's port.** `/api/v0` and `/admin` are guarded
   by the two tokens, not by network position. The demo's Compose files publish
   the port on localhost only by default.

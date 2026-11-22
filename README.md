@@ -621,9 +621,46 @@ hour to the same sender.
    two tokens and, on SQLite, every message.
 
 The messages endpoint (`/adtp/v0/messages`) is open to the internet by design:
-anyone may post, and nothing is stored until a signature verifies. Rate-limit
-it at your proxy. Keep `/api/v0` and `/admin` off the public internet if you
-can; they are guarded by the tokens either way.
+anyone may post, and nothing is stored until a signature verifies. Checking a
+signature means fetching the sender's card, so every post from a sender the
+node has not seen costs it a DNS lookup and an HTTPS request. The node bounds
+that work itself: one lookup per address at a time, at most 16 lookups in
+progress with 64 more waiting (further ones are answered `503`, which senders
+retry), and a card cache of at most 5000 entries. It does not limit requests
+per client address. Do that at your proxy, for the two public paths:
+
+| Path | Limit per client IP | Why |
+|---|---|---|
+| `POST /adtp/v0/messages` | About 5 requests a second, bursts of 20, at most 10 connections. Body at most 300 KB. | A node delivering a backlog sends a few messages a second. An envelope is at most 256 KB. |
+| `GET /.well-known/adtp` and below | About 10 requests a second, bursts of 40. | Cards and the directory are small and other nodes cache them for minutes. |
+
+With nginx, for example:
+
+```nginx
+limit_req_zone  $binary_remote_addr zone=adtp_messages:10m rate=5r/s;
+limit_req_zone  $binary_remote_addr zone=adtp_cards:10m    rate=10r/s;
+limit_conn_zone $binary_remote_addr zone=adtp_conn:10m;
+
+location = /adtp/v0/messages {
+  limit_req  zone=adtp_messages burst=20 nodelay;
+  limit_conn adtp_conn 10;
+  limit_req_status 429;
+  client_max_body_size 300k;
+  proxy_pass http://127.0.0.1:7387;
+}
+location /.well-known/adtp {
+  limit_req zone=adtp_cards burst=40 nodelay;
+  limit_req_status 429;
+  proxy_pass http://127.0.0.1:7387;
+}
+```
+
+Caddy, which the examples here use for certificates, has no rate limiter in its
+standard build: add one as a plugin, or put the limits in whatever sits in
+front of it. A hosting platform's own edge limits serve the same purpose.
+
+Keep `/api/v0` and `/admin` off the public internet if you can; they are
+guarded by the tokens either way.
 
 ### The directory
 

@@ -26,3 +26,8 @@ These are stated in [SPEC.md](SPEC.md) (sections 12 and 13) and are not news:
 - Message contents are not encrypted beyond HTTPS. The two nodes can read them.
 - Trust in a sender's keys rests on DNS and HTTPS for the sender's domain.
 - Revoking a delegation reaches only the node that issued it.
+
+One limit is the node's own: it does not limit requests per client address. It
+bounds the work a stranger can cause, but a node on the open internet needs
+rate limits at its proxy. The [README](README.md#running-on-a-real-domain)
+says which.
