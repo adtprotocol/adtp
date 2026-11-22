@@ -147,7 +147,7 @@ describe('the demo without Docker', () => {
   it('run.sh with neither Docker nor Node.js says what to install', async () => {
     const result = await script(pathWith('bare'));
     assert.equal(result.code, 1);
-    assert.match(result.out, /The demo needs Docker, or Node\.js 22\.13 or newer\. Docker is not installed\. There is no Node\.js on this machine either\./);
+    assert.match(result.out, /The demo needs Docker, or Node\.js 22\.20 or newer\. Docker is not installed\. There is no Node\.js on this machine either\./);
     assert.match(result.out, /https:\/\/docs\.docker\.com\/get-docker\//);
     assert.match(result.out, /https:\/\/nodejs\.org\//);
     assert.match(result.out, /Either one is enough/);
@@ -162,7 +162,7 @@ describe('the demo without Docker', () => {
     const old = await script(pathWith('stopped-old-node', { docker: STOPPED_DOCKER, node: OLD_NODE }));
     assert.equal(old.code, 1);
     assert.match(old.out, /Docker is installed but not running\. Start it/);
-    assert.match(old.out, /The Node\.js here \(v18\.19\.0\) is older than 22\.13/);
+    assert.match(old.out, /The Node\.js here \(v18\.19\.0\) is older than 22\.20/);
   });
 
   it('run.sh --public and --down without Docker say what applies', async () => {

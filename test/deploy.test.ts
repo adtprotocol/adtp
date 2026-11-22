@@ -37,6 +37,8 @@ describe('deploying: the image\'s config', () => {
     const dockerfile = read('Dockerfile');
     assert.match(dockerfile, /COPY deploy\/env\.config\.yaml \.\/adtp\.config\.yaml/);
     assert.match(dockerfile, /ARG RUN_AS=node\nUSER \$\{RUN_AS\}/);
+    // The health check asks the port the config listens on, not a fixed one.
+    assert.match(dockerfile, /HEALTHCHECK[^\n]*\\\n\s*CMD wget [^\n]*127\.0\.0\.1:\$\{PORT:-7387\}\/healthz/);
   });
 });
 
