@@ -56,7 +56,7 @@ discovery, signature and delegation checks, a signed receipt, `delivered` and
 
 ### Locally, in under five minutes
 
-You need Docker with Compose, or Node.js 22.16 or newer. Either one is enough.
+You need Docker with Compose, or Node.js 22.20 or newer. Either one is enough.
 
 ```sh
 bash demo/run.sh
@@ -815,7 +815,7 @@ stays single-domain.
 
 ```sh
 npm ci
-npm test                     # on SQLite: needs nothing but Node 22 (22.16 or later)
+npm test                     # on SQLite: needs nothing but Node 22 (22.20 or later)
 ```
 
 The same suite on Postgres, pointed at a server you run:

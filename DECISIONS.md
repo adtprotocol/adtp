@@ -422,9 +422,13 @@ is meant to be permanent.
 
 ## 8. Runtime
 
-- **Node 22, and only 22** (`"engines": ">=22.16 <23"`). `node:sqlite` works
-  without a flag from 22.13, but the SQLite driver asks each statement for its
-  columns (`statement.columns()`), which arrived in 22.16. The upper bound is there because that
+- **Node 22, and only 22** (`"engines": ">=22.20 <23"`). `node:sqlite` works
+  without a flag from 22.13, but not well enough for this code until 22.20.
+  The SQLite driver asks each statement for its columns
+  (`statement.columns()`), which arrived in 22.16, and binds numbered
+  parameters (`?1`, `?2`) by position, which fails with "column index out of
+  range" on every release before 22.20. The test workflow runs the suite on
+  22.20.0, so the stated minimum is one that has been run. The upper bound is there because that
   module is still marked experimental and may change between major versions,
   and because 22 is the line the test suite has been run on. Moving to a newer
   line is a deliberate step: change the bound and the Docker base image, run
