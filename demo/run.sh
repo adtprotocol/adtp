@@ -13,7 +13,7 @@
 #   bash demo/run.sh --no-docker local mode without containers: the same two nodes as processes on this machine
 #
 # It runs in Docker when Docker is there. Without Docker it runs the same demo
-# with Node.js (22.13 or newer), and says so.
+# with Node.js (22.16 or newer), and says so.
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -42,15 +42,15 @@ docker_state() {
   echo ok
 }
 
-# Node.js 22.13 or newer: the first release that runs this code as it is.
+# Node.js 22.16 or newer: the first release that runs this code as it is.
 node_ok() {
   command -v node >/dev/null 2>&1 || return 1
-  node -e 'const [major, minor] = process.versions.node.split(".").map(Number); process.exit(major > 22 || (major === 22 && minor >= 13) ? 0 : 1)'
+  node -e 'const [major, minor] = process.versions.node.split(".").map(Number); process.exit(major > 22 || (major === 22 && minor >= 16) ? 0 : 1)'
 }
 
 docker_hint='  Docker    https://docs.docker.com/get-docker/
             On a Mac: brew install --cask docker, then open Docker once and wait until it is running.'
-node_hint='  Node.js   https://nodejs.org/ (version 22.13 or newer)
+node_hint='  Node.js   https://nodejs.org/ (version 22.16 or newer)
             On a Mac: brew install node@22'
 start_docker='Start it (on a Mac: open Docker Desktop and wait until it is running), then run this again.'
 
@@ -93,14 +93,14 @@ if [[ $no_docker -eq 1 || $state != ok ]]; then
   fi
   if ! node_ok; then
     have_node=""
-    command -v node >/dev/null 2>&1 && have_node="The Node.js here ($(node --version)) is older than 22.13, so it cannot run the demo either."
+    command -v node >/dev/null 2>&1 && have_node="The Node.js here ($(node --version)) is older than 22.16, so it cannot run the demo either."
     if [[ $state == ok ]]; then
-      printf '%s\n\n%s\n' "--no-docker needs Node.js 22.13 or newer. ${have_node:-There is no Node.js on this machine.}" "$node_hint" >&2
+      printf '%s\n\n%s\n' "--no-docker needs Node.js 22.16 or newer. ${have_node:-There is no Node.js on this machine.}" "$node_hint" >&2
     elif [[ $state == stopped ]]; then
       echo "$why. $start_docker" >&2
       [[ -n $have_node ]] && echo "$have_node" >&2
     else
-      echo "The demo needs Docker, or Node.js 22.13 or newer. $why. ${have_node:-There is no Node.js on this machine either.}" >&2
+      echo "The demo needs Docker, or Node.js 22.16 or newer. $why. ${have_node:-There is no Node.js on this machine either.}" >&2
       printf '\n%s\n%s\n\nEither one is enough. Install it and run this again.\n' "$docker_hint" "$node_hint" >&2
     fi
     exit 1

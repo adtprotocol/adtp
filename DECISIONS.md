@@ -390,8 +390,9 @@ is meant to be permanent.
 
 ## 8. Runtime
 
-- **Node 22, and only 22** (`"engines": ">=22.13 <23"`). 22.13 is where
-  `node:sqlite` works without a flag. The upper bound is there because that
+- **Node 22, and only 22** (`"engines": ">=22.16 <23"`). `node:sqlite` works
+  without a flag from 22.13, but the SQLite driver asks each statement for its
+  columns (`statement.columns()`), which arrived in 22.16. The upper bound is there because that
   module is still marked experimental and may change between major versions,
   and because 22 is the line the test suite has been run on. Moving to a newer
   line is a deliberate step: change the bound and the Docker base image, run
