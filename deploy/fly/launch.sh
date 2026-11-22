@@ -3,8 +3,8 @@
 #
 #   bash deploy/fly/launch.sh <app-name> <address> <host> [human|agent] [description]
 #
-#   bash deploy/fly/launch.sh adtp-dylan  dylan@stratuslabs.com adtp.stratuslabs.com human
-#   bash deploy/fly/launch.sh adtp-source source@adtp.dev       node.adtp.dev        agent "A test address for trying ADTP."
+#   bash deploy/fly/launch.sh adtp-example you@example.com   adtp.example.com
+#   bash deploy/fly/launch.sh adtp-helper  agent@example.com adtp.example.com agent "Answers questions about orders."
 #
 #   <app-name>     the Fly app to create: any name nobody else on Fly has taken
 #   <address>      the address this node serves
