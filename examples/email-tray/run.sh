@@ -6,6 +6,22 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
+# This walkthrough needs Docker: besides the two nodes it runs a mail catcher.
+if ! command -v docker >/dev/null 2>&1; then
+  echo "This walkthrough needs Docker, which is not installed: https://docs.docker.com/get-docker/" >&2
+  echo "(On a Mac: brew install --cask docker, then open Docker once and wait until it is running.)" >&2
+  echo "The main demo runs without Docker: bash demo/run.sh" >&2
+  exit 1
+fi
+if ! docker compose version >/dev/null 2>&1; then
+  echo "This walkthrough needs Docker Compose (the \"docker compose\" command), which this Docker does not have." >&2
+  exit 1
+fi
+if ! docker info >/dev/null 2>&1; then
+  echo "Docker is installed but not running. Start it (on a Mac: open Docker Desktop and wait until it is running), then run this again." >&2
+  exit 1
+fi
+
 compose() { docker compose "$@"; }   # uses the docker-compose.yml in this directory
 
 if [[ "${1:-}" != "--keep" ]]; then

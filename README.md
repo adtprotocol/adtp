@@ -56,16 +56,20 @@ discovery, signature and delegation checks, a signed receipt, `delivered` and
 
 ### Locally, in under five minutes
 
-You need Docker with Compose. Nothing else.
+You need Docker with Compose, or Node.js 22.13 or newer. Either one is enough.
 
 ```sh
 bash demo/run.sh
 ```
 
-The first run builds the image (a few minutes) and starts both sides on your
-machine as `stratuslabs.localhost` and `demo.adtp.localhost`. Later runs take
-about two seconds. There is no DNS or TLS in local mode: each node is told
-where the other's cards live (`demo/local/*.config.yaml`).
+With Docker, the first run builds the image (a few minutes) and starts both
+sides on your machine as `stratuslabs.localhost` and `demo.adtp.localhost`.
+Later runs take about two seconds. Without Docker, the script says so and runs
+the same two nodes as ordinary processes instead (`--no-docker` asks for that
+outright); the first run installs the dependencies and compiles, and nothing is
+left behind afterwards. If the machine has neither, the script says what to
+install. There is no DNS or TLS in local mode: each node is told where the
+other's cards live (`demo/local/*.config.yaml`).
 
 ```
 ADTP v0 demo  agent@stratuslabs.localhost → echo@demo.adtp.localhost
