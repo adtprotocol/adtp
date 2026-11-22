@@ -3,21 +3,22 @@
   "mode": "tamper",
   "from": "agent@stratuslabs.localhost",
   "to": "echo@demo.adtp.localhost",
+  "record": "signatures and tokens shortened",
   "result": {
     "ok": true,
     "summary": "Side B refused the tampered envelope: the signature no longer matches",
-    "elapsed_ms": 23,
+    "elapsed_ms": 33,
     "statuses": {}
   },
   "discovery": {
     "address": "echo@demo.adtp.localhost",
     "type": "agent",
-    "endpoint": "http://echo-node:7387/adtp/v0/messages",
+    "endpoint": "http://127.0.0.1:7389/adtp/v0/messages",
     "keys": [
       {
-        "kid": "ed25519-dc65fc07efdb9693",
+        "kid": "ed25519-ec0125b1d9565194",
         "alg": "Ed25519",
-        "public_key": "610weugl-AUg8TukKfhlngKao6dLyZu-CVunwlDUQL8"
+        "public_key": "ev16fCJAtT028_G7I7-w9S65NSf5cliDCoi5eYMiMSw"
       }
     ],
     "accepts": [
@@ -35,13 +36,13 @@
     "max_bytes": 262144,
     "resolved": {
       "method": "override",
-      "card_url": "http://echo-node:7387/.well-known/adtp/echo"
+      "card_url": "http://127.0.0.1:7389/.well-known/adtp/echo"
     }
   },
   "envelope": {
     "adtp": "0",
-    "id": "msg_01M7Y85K3PKCGFPDDB4V2VMD5R",
-    "thread": "thr_01M7Y85K3PV9QGN82BSWRECNQD",
+    "id": "msg_01M824FXE80NJEZH4JH7SK7466",
+    "thread": "thr_01M824FXE8AHSVW2BHXJARBN5S",
     "from": "agent@stratuslabs.localhost",
     "on_behalf_of": "dylan@stratuslabs.localhost",
     "to": [
@@ -49,8 +50,8 @@
     ],
     "intent": "request",
     "priority": "normal",
-    "created_at": "2026-11-21T05:09:52Z",
-    "expires_at": "2026-11-21T06:09:52Z",
+    "created_at": "2026-11-22T17:22:34Z",
+    "expires_at": "2026-11-22T18:22:34Z",
     "requires_approval": false,
     "content": {
       "parts": [
@@ -62,46 +63,46 @@
           "type": "data",
           "data": {
             "type": "demo.ping",
-            "sent_at": "2026-11-21T05:09:52.882Z"
+            "sent_at": "2026-11-22T17:22:34.564Z"
           }
         }
       ]
     },
-    "delegation": "eyJhbGciOiJFZERTQSIsInR5cCI6ImFkdHAtZGVsZWdhdGlvbitqd3QiLCJraWQiOiJlZDI1NTE5LWM4OTdiZmFjOTExY2ExZGEifQ.eyJpc3MiOiJkeWxhbkBzdHJhdHVzbGFicy5sb2NhbGhvc3QiLCJzdWIiOiJhZ2VudEBzdHJhdHVzbGFicy5sb2NhbGhvc3QiLCJhdWQiOiJhZHRwIiwic2NvcGUiOlsicmVxdWVzdCJdLCJqdGkiOiJkbGdfNmdqR3V5bXN6QU1ZVzlXUiIsImlhdCI6MTc5NTIzNzc5MiwiZXhwIjoxNzk1MjQxMzkzfQ.F9H_Q-DYUaCdMOgCQ315X28TtP_sr7hRpQNj2D0o4sxu8IOXhc0TRVC_Qc4UO8HS2f3WjrU1CBgTA4CfMlYsAw",
+    "delegation": "eyJhbGciOiJFZERT…0TD6JmBA",
     "signature": {
       "alg": "Ed25519",
-      "kid": "ed25519-c897bfac911ca1da",
-      "value": "pHUT6lEqokHrOaXiN0rqMLa3YpffFbI3zFvcvvieqBXG8Y_TOmCy12lRLAZwfVQSFmVkK3voHX4aogkTEGVaBg"
+      "kid": "ed25519-a10fab831aa5a2d3",
+      "value": "pUXqXMFKqc9l3Ai_…htPYtHAA"
     }
   },
   "reply": null,
   "timeline": [
     {
-      "at": "2026-11-21T05:09:52.881Z",
-      "elapsed_ms": 6,
+      "at": "2026-11-22T17:22:34.564Z",
+      "elapsed_ms": 14,
       "actor": "stratus",
       "step": "discover",
       "text": "local mode: discovery override for demo.adtp.localhost (no DNS lookup)",
       "detail": {
         "method": "override",
-        "card_url": "http://echo-node:7387/.well-known/adtp/echo"
+        "card_url": "http://127.0.0.1:7389/.well-known/adtp/echo"
       }
     },
     {
-      "at": "2026-11-21T05:09:52.881Z",
-      "elapsed_ms": 6,
+      "at": "2026-11-22T17:22:34.564Z",
+      "elapsed_ms": 14,
       "actor": "stratus",
       "step": "card",
-      "text": "http://echo-node:7387/.well-known/adtp/echo  →  endpoint http://echo-node:7387/adtp/v0/messages, key ed25519-dc65fc07efdb9693",
+      "text": "http://127.0.0.1:7389/.well-known/adtp/echo  →  endpoint http://127.0.0.1:7389/adtp/v0/messages, key ed25519-ec0125b1d9565194",
       "detail": {
         "address": "echo@demo.adtp.localhost",
         "type": "agent",
-        "endpoint": "http://echo-node:7387/adtp/v0/messages",
+        "endpoint": "http://127.0.0.1:7389/adtp/v0/messages",
         "keys": [
           {
-            "kid": "ed25519-dc65fc07efdb9693",
+            "kid": "ed25519-ec0125b1d9565194",
             "alg": "Ed25519",
-            "public_key": "610weugl-AUg8TukKfhlngKao6dLyZu-CVunwlDUQL8"
+            "public_key": "ev16fCJAtT028_G7I7-w9S65NSf5cliDCoi5eYMiMSw"
           }
         ],
         "accepts": [
@@ -120,15 +121,15 @@
       }
     },
     {
-      "at": "2026-11-21T05:09:52.889Z",
-      "elapsed_ms": 14,
+      "at": "2026-11-22T17:22:34.571Z",
+      "elapsed_ms": 21,
       "actor": "stratus",
       "step": "envelope",
       "text": "signed by the node for agent@stratuslabs.localhost (not sent)",
       "detail": {
         "adtp": "0",
-        "id": "msg_01M7Y85K3PKCGFPDDB4V2VMD5R",
-        "thread": "thr_01M7Y85K3PV9QGN82BSWRECNQD",
+        "id": "msg_01M824FXE80NJEZH4JH7SK7466",
+        "thread": "thr_01M824FXE8AHSVW2BHXJARBN5S",
         "from": "agent@stratuslabs.localhost",
         "on_behalf_of": "dylan@stratuslabs.localhost",
         "to": [
@@ -136,8 +137,8 @@
         ],
         "intent": "request",
         "priority": "normal",
-        "created_at": "2026-11-21T05:09:52Z",
-        "expires_at": "2026-11-21T06:09:52Z",
+        "created_at": "2026-11-22T17:22:34Z",
+        "expires_at": "2026-11-22T18:22:34Z",
         "requires_approval": false,
         "content": {
           "parts": [
@@ -149,22 +150,22 @@
               "type": "data",
               "data": {
                 "type": "demo.ping",
-                "sent_at": "2026-11-21T05:09:52.882Z"
+                "sent_at": "2026-11-22T17:22:34.564Z"
               }
             }
           ]
         },
-        "delegation": "eyJhbGciOiJFZERT…CfMlYsAw",
+        "delegation": "eyJhbGciOiJFZERT…0TD6JmBA",
         "signature": {
           "alg": "Ed25519",
-          "kid": "ed25519-c897bfac911ca1da",
-          "value": "pHUT6lEqokHrOaXi…kTEGVaBg"
+          "kid": "ed25519-a10fab831aa5a2d3",
+          "value": "pUXqXMFKqc9l3Ai_…htPYtHAA"
         }
       }
     },
     {
-      "at": "2026-11-21T05:09:52.890Z",
-      "elapsed_ms": 15,
+      "at": "2026-11-22T17:22:34.572Z",
+      "elapsed_ms": 22,
       "actor": "stratus",
       "step": "tamper",
       "text": "one byte changed in transit: \"Hello…\" → \"Iello…\" (signature untouched)",
@@ -175,16 +176,16 @@
       }
     },
     {
-      "at": "2026-11-21T05:09:52.898Z",
-      "elapsed_ms": 23,
+      "at": "2026-11-22T17:22:34.583Z",
+      "elapsed_ms": 33,
       "actor": "side-b",
       "step": "rejected",
-      "text": "HTTP 401  bad_signature: the envelope signature does not verify against key \"ed25519-c897bfac911ca1da\" of agent@stratuslabs.localhost",
+      "text": "HTTP 401  bad_signature: the envelope signature does not verify against key \"ed25519-a10fab831aa5a2d3\" of agent@stratuslabs.localhost",
       "detail": {
         "http_status": 401,
         "body": {
           "error": "bad_signature",
-          "message": "the envelope signature does not verify against key \"ed25519-c897bfac911ca1da\" of agent@stratuslabs.localhost",
+          "message": "the envelope signature does not verify against key \"ed25519-a10fab831aa5a2d3\" of agent@stratuslabs.localhost",
           "retryable": false
         }
       }

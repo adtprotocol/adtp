@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 # The ADTP v0 demo: one signed message from the Stratus agent to the echo agent
 # on another domain, with discovery, verification, an ack, status updates and
-# a reply. Prints a timestamped transcript and writes demo/transcript.{md,json}.
+# a reply. Prints a timestamped transcript and writes demo/transcript.{md,json},
+# with signatures and tokens shortened so that the files are safe to share.
 #
 #   bash demo/run.sh             local two-node mode (builds and starts everything it needs)
 #   bash demo/run.sh --tamper    flip one byte in transit; Side B must reject it
 #   bash demo/run.sh --watch     transcribe a message sent by the real Stratus agent instead of sending one
 #   bash demo/run.sh --public    run against the real Side A node started from demo/side-a
+#   bash demo/run.sh --raw       also keep the full transcript, tokens and all, in demo/raw (ignored by git)
 #   bash demo/run.sh --build     local mode: rebuild the image first (after changing the code)
 #   bash demo/run.sh --reset     local mode: wipe both nodes' data first
 #   bash demo/run.sh --down      local mode: stop everything and delete its data
@@ -26,8 +28,8 @@ for arg in "$@"; do
     --down)   down=1 ;;
     --build)  build=(--build); rebuild=1 ;;
     --no-docker) no_docker=1 ;;
-    --tamper|--watch) args+=("$arg") ;;
-    -h|--help) sed -n '2,16p' "$(basename "$0")" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --tamper|--watch|--raw) args+=("$arg") ;;
+    -h|--help) sed -n '2,18p' "$(basename "$0")" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "unknown option: $arg (try --help)" >&2; exit 2 ;;
   esac
 done

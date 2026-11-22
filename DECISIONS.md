@@ -463,7 +463,13 @@ logic here, and none of the four defaults pretends otherwise.
   Side B's clock.
 - **Local mode uses separate config files** (`demo/local/`) rather than the
   public ones with switches, so each file can be read on its own.
-- **Transcripts are overwritten on every run** and committed as a sample.
+- **Transcripts are overwritten on every run** and committed as a sample, so
+  what a run writes by default has to be safe to commit: signatures and
+  delegation tokens are shortened, and unless both sides are the scripted
+  ones on `.localhost`, message text and data are left out. A live run
+  carries real messages and tokens that are valid for days. The full record
+  is written only when asked for (`--raw`), to `demo/raw/`, which git and
+  Docker builds ignore.
 - **The echo agent answers requests only**, so two such agents cannot bounce
   messages forever.
 

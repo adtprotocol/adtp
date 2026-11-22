@@ -9,3 +9,5 @@ data/
 keyring.json
 admin-token
 agent-token
+# full demo transcripts (bash demo/run.sh --raw): whole signatures, tokens and message text
+demo/raw/

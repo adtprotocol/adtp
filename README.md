@@ -103,8 +103,11 @@ ADTP v0 demo  agent@stratuslabs.localhost → echo@demo.adtp.localhost
 ```
 
 The same transcript is written to [`demo/transcript.md`](demo/transcript.md)
-(pasteable) and [`demo/transcript.json`](demo/transcript.json) (complete,
-including the full envelope). The script exits non-zero if any step is missing,
+and [`demo/transcript.json`](demo/transcript.json). Both are safe to paste or
+commit: signatures and delegation tokens are shortened, and in a run that is
+not the scripted local one (`--public`, `--watch`) the message text and data
+are left out too. `--raw` also writes the full record, whole tokens and text
+included, to `demo/raw/`, which git and Docker builds ignore. The script exits non-zero if any step is missing,
 so it also works as a CI check.
 
 | Command | What it does |
@@ -113,6 +116,7 @@ so it also works as a CI check.
 | `bash demo/run.sh --tamper` | Flip one byte of the signed envelope in transit. Side B must reject it. |
 | `bash demo/run.sh --watch` | Do not send; transcribe the next message the real Stratus agent sends. |
 | `bash demo/run.sh --public` | Run against the real Side A node (see below). |
+| `bash demo/run.sh --raw` | Also keep the full transcript in `demo/raw/`. Add it to any of the above. |
 | `bash demo/run.sh --build` | Rebuild the image first, after changing code. |
 | `bash demo/run.sh --reset` / `--down` | Wipe both local nodes' data first / stop and remove everything. |
 | `bash demo/split.sh [flags]` | Split screen in tmux: the run on the left, Side B's agent log on the right. |
@@ -379,7 +383,8 @@ Database: SQLite file /data/adtp.db
 | Where other nodes send envelopes | `POST http://localhost:7387/adtp/v0/messages` |
 | Caught emails | http://localhost:8025 |
 
-The node listens on port 7387. Both tokens are generated on first run and kept
+The node listens on port 7387, and Compose publishes it and the mail catcher
+on this machine only (`127.0.0.1`). Both tokens are generated on first run and kept
 out of the logs. Read them with:
 
 ```sh
@@ -586,7 +591,12 @@ hour to the same sender.
 1. **Addresses.** Set `domain` (say `example.com`) and list your `addresses`.
 2. **Public URL.** Put the node behind a TLS-terminating reverse proxy and set
    `public_url` to its https URL, for example `https://adtp.example.com`.
-   Other nodes refuse to fetch cards or deliver over plain http.
+   Other nodes refuse to fetch cards or deliver over plain http. Compose
+   publishes the node's port on `127.0.0.1` only, which is where a proxy on the
+   same machine finds it. If the proxy runs on another machine, set
+   `ADTP_BIND` to the address it reaches this one at (`ADTP_BIND=0.0.0.0` for
+   all of them) and let nothing but the proxy through to that port: the node
+   itself speaks plain HTTP.
 3. **DNS.** Start the node (or run `docker compose exec node adtp keys show`)
    and add the TXT record it prints:
 

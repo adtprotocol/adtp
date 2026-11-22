@@ -92,3 +92,23 @@ describe('deploying: the guide', () => {
     assert.ok(guide.includes('https://render.com/deploy?repo=https://github.com/adtprotocol/adtp'));
   });
 });
+
+describe('deploying: what stays out of an image, and off the network', () => {
+  it('keeps credential files out of the build, wherever they are', () => {
+    const ignored = read('.dockerignore').split('\n').map((line) => line.trim());
+    // The guides have people create .env files beside the Compose files under demo/ and examples/.
+    for (const rule of ['**/.env', '**/.env.*', '**/*.env', '**/keyring.json', '**/admin-token', '**/agent-token', 'demo/raw']) {
+      assert.ok(ignored.includes(rule), `.dockerignore has ${rule}`);
+    }
+    // And the stage the node image is built from takes only source files from those directories.
+    const build = read('Dockerfile').split(/^FROM /m).find((stage) => /^\S+ AS build\n/.test(stage))!;
+    assert.doesNotMatch(build, /^COPY (demo|examples) /m);
+    assert.match(build, /^COPY demo\/\*\.ts \.\/demo\/$/m);
+  });
+
+  it('publishes the quickstart on this machine only, unless told otherwise', () => {
+    const compose = parseYaml(read('docker-compose.yml')) as { services: Record<string, { ports?: string[] }> };
+    assert.deepEqual(compose.services.node!.ports, ['${ADTP_BIND:-127.0.0.1}:${ADTP_HTTP_PORT:-7387}:7387']);
+    assert.deepEqual(compose.services.mailpit!.ports, ['127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025']);
+  });
+});

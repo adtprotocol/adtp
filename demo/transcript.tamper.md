@@ -8,11 +8,11 @@
 
 | Time (UTC) | Elapsed | Side | Step | What happened |
 |---|---|---|---|---|
-| 05:09:52.881 | +0.006s | stratus | discover | local mode: discovery override for demo.adtp.localhost (no DNS lookup) |
-| 05:09:52.881 | +0.006s | stratus | card | http://echo-node:7387/.well-known/adtp/echo  →  endpoint http://echo-node:7387/adtp/v0/messages, key ed25519-dc65fc07efdb9693 |
-| 05:09:52.889 | +0.014s | stratus | envelope | signed by the node for agent@stratuslabs.localhost (not sent) |
-| 05:09:52.890 | +0.015s | stratus | tamper | one byte changed in transit: "Hello…" → "Iello…" (signature untouched) |
-| 05:09:52.898 | +0.023s | side-b | rejected | HTTP 401  bad_signature: the envelope signature does not verify against key "ed25519-c897bfac911ca1da" of agent@stratuslabs.localhost |
+| 17:22:34.564 | +0.014s | stratus | discover | local mode: discovery override for demo.adtp.localhost (no DNS lookup) |
+| 17:22:34.564 | +0.014s | stratus | card | http://127.0.0.1:7389/.well-known/adtp/echo  →  endpoint http://127.0.0.1:7389/adtp/v0/messages, key ed25519-ec0125b1d9565194 |
+| 17:22:34.571 | +0.021s | stratus | envelope | signed by the node for agent@stratuslabs.localhost (not sent) |
+| 17:22:34.572 | +0.022s | stratus | tamper | one byte changed in transit: "Hello…" → "Iello…" (signature untouched) |
+| 17:22:34.583 | +0.033s | side-b | rejected | HTTP 401  bad_signature: the envelope signature does not verify against key "ed25519-a10fab831aa5a2d3" of agent@stratuslabs.localhost |
 
 ## The tampered envelope
 
@@ -21,8 +21,8 @@ Signature and delegation token shortened for display.
 ```json
 {
   "adtp": "0",
-  "id": "msg_01M7Y85K3PKCGFPDDB4V2VMD5R",
-  "thread": "thr_01M7Y85K3PV9QGN82BSWRECNQD",
+  "id": "msg_01M824FXE80NJEZH4JH7SK7466",
+  "thread": "thr_01M824FXE8AHSVW2BHXJARBN5S",
   "from": "agent@stratuslabs.localhost",
   "on_behalf_of": "dylan@stratuslabs.localhost",
   "to": [
@@ -30,8 +30,8 @@ Signature and delegation token shortened for display.
   ],
   "intent": "request",
   "priority": "normal",
-  "created_at": "2026-11-21T05:09:52Z",
-  "expires_at": "2026-11-21T06:09:52Z",
+  "created_at": "2026-11-22T17:22:34Z",
+  "expires_at": "2026-11-22T18:22:34Z",
   "requires_approval": false,
   "content": {
     "parts": [
@@ -43,16 +43,16 @@ Signature and delegation token shortened for display.
         "type": "data",
         "data": {
           "type": "demo.ping",
-          "sent_at": "2026-11-21T05:09:52.882Z"
+          "sent_at": "2026-11-22T17:22:34.564Z"
         }
       }
     ]
   },
-  "delegation": "eyJhbGciOiJFZERT…CfMlYsAw",
+  "delegation": "eyJhbGciOiJFZERT…0TD6JmBA",
   "signature": {
     "alg": "Ed25519",
-    "kid": "ed25519-c897bfac911ca1da",
-    "value": "pHUT6lEqokHrOaXi…kTEGVaBg"
+    "kid": "ed25519-a10fab831aa5a2d3",
+    "value": "pUXqXMFKqc9l3Ai_…htPYtHAA"
   }
 }
 ```
