@@ -173,6 +173,12 @@ first-contact limits, and the address answers each thread once.
 - **The node runs as root inside its machine** (`RUN_AS=root` in `fly.toml`),
   because a Fly volume is writable only by root. Elsewhere it runs as an
   unprivileged user.
+- **To update a node without a checkout,** this repository has a workflow that
+  deploys `main` to an app you name: on GitHub, Actions, **Deploy to Fly.io**,
+  Run workflow. It needs a Fly.io deploy token saved as the repository secret
+  `FLY_API_TOKEN`, runs only when someone starts it, and leaves the node's
+  settings and data alone. In a fork, change the repository name at the top of
+  [the workflow](../.github/workflows/deploy-fly.yml) first.
 - **To remove a node:** `fly apps destroy <app-name>`, and delete its two DNS
   records and its `.env.fly.<app-name>` file.
 
