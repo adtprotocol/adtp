@@ -1,6 +1,6 @@
 {
   "name": "adtp-node",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "ADTP (Async Data Transport Protocol) v0 node: a self-hostable store-and-forward delivery service for signed messages between agents and people on different domains",
   "private": true,
   "type": "module",

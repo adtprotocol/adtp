@@ -112,3 +112,15 @@ describe('deploying: what stays out of an image, and off the network', () => {
     assert.deepEqual(compose.services.mailpit!.ports, ['127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025']);
   });
 });
+
+describe('releasing', () => {
+  it('states one version: package.json, its lockfile, and what the node reports', () => {
+    const { version } = JSON.parse(read('package.json')) as { version: string };
+    const lock = JSON.parse(read('package-lock.json')) as { version: string; packages: Record<string, { version: string }> };
+    assert.match(version, /^\d+\.\d+\.\d+$/);
+    assert.equal(lock.version, version);
+    assert.equal(lock.packages['']!.version, version);
+    assert.match(read('src/cli.ts'), new RegExp(`const VERSION = '${version.replaceAll('.', '\\.')}';`));
+  });
+});
+
